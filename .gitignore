@@ -1,0 +1,10 @@
+.DS_Store
+*.py[co]
+.coverage
+AUTHORS
+ChangeLog
+*.egg-info
+*.egg
+.tox/*
+devenv/*
+coverage.xml

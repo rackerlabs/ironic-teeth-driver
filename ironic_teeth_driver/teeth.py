@@ -31,8 +31,6 @@ DELETING: doing decom
 DELETED: decom finished
 """
 
-import six
-
 
 class TeethDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""

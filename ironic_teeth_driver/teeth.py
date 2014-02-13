@@ -13,17 +13,34 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-
-import abc
-
+from ironic.common import exception
+from ironic.common import states
+from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
+from ironic_teeth_driver import rest
+
+"""States:
+
+BUILDING: caching
+PREPARED: image cached, ready for deploy
+
+DEPLOYING: applying instance definition (SSH pub keys, etc), rebooting
+ACTIVE: ready to be used
+
+DELETING: doing decom
+DELETED: decom finished
+"""
 
 import six
 
 
 class TeethDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""
+
+    def _get_client(self):
+        # TODO(pcsforeducation) add config
+        client = rest.RESTAgentClient({})
+        return client
 
     def validate(self, node):
         """Validate the driver-specific Node deployment info.
@@ -35,6 +52,9 @@ class TeethDeploy(base.DeployInterface):
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
+        if 'agent_url' not in node.driver_info:
+            raise exception.InvalidParameterValue('Nodes require an'
+                                                  'agent_url.')
 
     def deploy(self, task, node):
         """Perform a deployment to a node.
@@ -48,35 +68,81 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
+        self.validate(node)
+        image_info = node.driver_info.get('image_info', None)
+        metadata = node.driver_info.get('metadata', None)
+        files = node.driver_info.get('files', None)
+        if image_info is None:
+            raise exception.InvalidParameterValue('image_info required for '
+                                                  'deploy.')
+        if metadata is None:
+            raise exception.InvalidParameterValue('metadata required for '
+                                                  'deploy.')
+        if files is None:
+            raise exception.InvalidParameterValue('files required for deploy.')
+
+        node.provision_state = states.DEPLOYING
+        node.target_provision_state = states.DEPLOYDONE
+        node.save(task.context)
+
+        # Tell the client to run the image with the given args
+        client = self._get_client()
+        client.run_image(node, image_info, metadata, files)
+        return states.DEPLOYING
 
     def tear_down(self, task, node):
-        """Tear down a previous deployment.
+        """Reboot the machine and begin decom.
 
-        Given a node that has been previously deployed to,
-        do all cleanup and tear down necessary to "un-deploy" that node.
+        When the node reboots, it will check in, see that it is supposed
+        to be deleted, and start decom.
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
+        self.validate(node)
+
+        # Set the node to decom in the DB
+        node.provision_state = states.DELETING
+        node.target_provision_state = states.DELETED
+        node.save(task.context)
+
+        # Reboot
+        manager_utils.node_power_action(task, node, states.REBOOT)
+        return states.DELETING
 
     def prepare(self, task, node):
         """Prepare the deployment environment for this node.
 
-        If preparation of the deployment environment ahead of time is possible,
-        this method should be implemented by the driver.
+        The method must be idempotent. It will be called right before
+        `deploy`, which we will ignore.
 
-        If implemented, this method must be idempotent. It may be called
-        multiple times for the same node on the same conductor, and it may be
-        called by multiple conductors in parallel. Therefore, it must not
-        require an exclusive lock.
+        Cache the image stored in node.driver_info['image_id']
 
-        This method is called before `deploy`.
 
         :param task: a TaskManager instance.
         :param node: the Node for which to prepare a deployment environment
                      on this Conductor.
         """
+        self.validate(node)
+
+        # Set the node to cache in the DB
+        image_info = node.driver_info.get('image_info', None)
+        metadata = node.driver_info.get('metadata', None)
+        files = node.driver_info.get('files', None)
+        if image_info is None or metadata is None or files is None:
+            raise exception.InvalidParameterValue('image_info, metadata, '
+                                                  'and files are all required'
+                                                  'in driver_info.')
+        node.provision_state = states.BUILDING
+
+        # states.PREPARED is in a patch waiting merge.
+        node.target_provision_state = states.PREPARED
+        node.save(task.context)
+
+        # Tell the agent to cache the image
+        client = self._get_client()
+        client.cache_image(node)
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.
@@ -96,6 +162,8 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node whose deployment environment should be cleaned up
                      on this Conductor.
         """
+        # Not implemented. tear_down does everything.
+        pass
 
     def take_over(self, task, node):
         """Take over management of this node from a dead conductor.
@@ -115,77 +183,36 @@ class TeethDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :param node: the Node which is now being managed by this Conductor.
         """
+        # Unnecessary. Trying to keep everything as stateless as possible.
+        pass
 
 
-class TeethConsole(object):
-    """Interface for console-related actions."""
-
+class TeethPower(base.PowerInterface):
     def validate(self, node):
-        """Validate the driver-specific Node console info.
+        """Validate the driver-specific Node power info.
 
         This method validates whether the 'driver_info' property of the
         supplied node contains the required information for this driver to
-        provide console access to the Node.
+        manage the power state of the node.
 
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
 
-    def start_console(self, task, node):
-        """Start a remote console for the node.
+    def get_power_state(self, task, node):
+        """Return the power state of the node.
 
         TODO
         """
 
-    def stop_console(self, task, node):
-        """Stop the remote console session for the node.
+    def set_power_state(self, task, node, power_state):
+        """Set the power state of the node.
 
         TODO
         """
 
-
-class TeethRescue(base.RescueInterface):
-    """Interface for rescue-related actions."""
-
-    def validate(self, node):
-        """Validate the rescue info stored in the node' properties.
-
-        :param node: a single Node to validate.
-        :raises: InvalidParameterValue
-        """
-
-    def rescue(self, task, node):
-        """Boot the node into a rescue environment.
+    def reboot(self, task, node):
+        """Perform a hard reboot of the node.
 
         TODO
-        """
-
-    def unrescue(self, task, node):
-        """Tear down the rescue environment, and return to normal.
-
-        TODO
-        """
-
-
-class VendorPassthrough(base.VendorInterface):
-    """Interface for all vendor passthru functionality.
-
-    Additional vendor- or driver-specific capabilities should be implemented as
-    private methods and invoked from vendor_passthru().
-    """
-
-    def validate(self, node, **kwargs):
-        """Validate vendor-specific actions.
-
-        :param node: a single Node.
-        :param kwargs: info for action.
-        :raises: InvalidParameterValue
-        """
-
-    def vendor_passthru(self, task, node, **kwargs):
-        """Receive requests for vendor-specific actions.
-
-        :param task: a task from TaskManager.
-        :param node: a single Node.
-        :param kwargs: info for action.
         """

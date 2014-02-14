@@ -74,12 +74,12 @@ class RESTAgentClient(object):
             'task_id': self.new_task_id(),
         })
 
-    #TODO(pcsforeducation) match agent function def to this.
+    #TODO(pcsforeducation) Fix agent to only require node param
     def run_image(self, node):
         """Run the specified image."""
-        self.log.debug('Running image {image} on node {node}.')
+        self.log.debug('Running image on node {node}.', node=node.url)
         return self._command(node, 'standby.run_image', {
-            'task_id': self.new_task_id()
+            'task_id': self.new_task_id(),
         })
 
     def secure_drives(self, node, drives, key):

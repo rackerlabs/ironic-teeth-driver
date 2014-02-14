@@ -88,7 +88,7 @@ class InsufficientCapacityError(RESTError):
     """
     message = _('Insufficient capacity')
     details = _('There was not enough capacity available to fulfill your '
-               'request. Please try back later.')
+                'request. Please try back later.')
 
 
 class AgentNotConnectedError(RESTError):
@@ -107,8 +107,8 @@ class AgentConnectionLostError(RESTError):
     call is in progress.
     """
     message = _('Agent connection lost')
-    details = _('The agent\'s connection was lost while performing your ' \
-                 'request.')
+    details = _('The agent\'s connection was lost while performing your '
+                'request.')
 
 
 class AgentExecutionError(RESTError):

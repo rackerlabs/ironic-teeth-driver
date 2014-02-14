@@ -13,11 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
+from ironic.openstack.common import jsonutils
+from ironic.openstack.common import log
+
 import json
 import requests
-
-from ironic_teeth_driver import encoding
-
 import uuid
 
 
@@ -25,15 +26,14 @@ class RESTAgentClient(object):
     """Client for interacting with nodes via a REST API."""
     def __init__(self, config):
         self.config = config
-        view = encoding.SerializationViews.PUBLIC
-        self.encoder = encoding.RESTJSONEncoder(view)
         self.session = requests.Session()
+        self.log = log.getLogger(__name__)
 
     def _get_command_url(self, node):
         return '{}/v1/commands'.format(node.driver_info['agent_url'])
 
     def _get_command_body(self, method, params):
-        return self.encoder.encode({
+        return jsonutils.dumps({
             'name': method,
             'params': params,
         })
@@ -63,29 +63,24 @@ class RESTAgentClient(object):
             'image_info': image_info,
         })
 
-    #TODO(pcsforeducation) combine this with run_image on the agent.
-    # def prepare_image(self, node, image_info, metadata, files):
-    #     """Call the `prepare_image` method on the node."""
-    #     self.log.debug('Preparing image {image} on node {node}.',
-    #                    image=image_info.get('image_id'),
-    #                    node=node.url)
-    #     return self._command(node, 'standby.prepare_image', {
-    #         'image_info': image_info,
-    #         'metadata': metadata,
-    #         'files': files,
-    #         'task_id': self.new_task_id(),
-    #     })
-
-    def run_image(self, node, image_info, metadata, files):
-        """Run the specified image."""
-        self.log.debug('Running image {image} on node {node}.',
-                       image=image_info,
+    def prepare_image(self, node, image_info, metadata, files):
+        """Call the `prepare_image` method on the node."""
+        self.log.debug('Preparing image {image} on node {node}.',
+                       image=image_info.get('image_id'),
                        node=node.url)
-        return self._command(node, 'standby.run_image', {
+        return self._command(node, 'standby.prepare_image', {
             'image_info': image_info,
             'metadata': metadata,
             'files': files,
             'task_id': self.new_task_id(),
+        })
+
+    #TODO(pcsforeducation) match agent function def to this.
+    def run_image(self, node):
+        """Run the specified image."""
+        self.log.debug('Running image {image} on node {node}.')
+        return self._command(node, 'standby.run_image', {
+            'task_id': self.new_task_id()
         })
 
     def secure_drives(self, node, drives, key):

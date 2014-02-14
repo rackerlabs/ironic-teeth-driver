@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from ironic_teeth_driver import base
-
 import json
 import requests
 
-from teeth_rest import encoding
+from ironic_teeth_driver import encoding
+
+import uuid
 
 
 class RESTAgentClient(object):
@@ -48,6 +48,10 @@ class RESTAgentClient(object):
 
         # TODO(russellhaering): real error handling
         return json.loads(response.text)
+
+    def new_task_id(self):
+        """Generate a serialized UUID for use as a task ID."""
+        return str(uuid.uuid4())
 
     def cache_image(self, node, image_info):
         """Attempt to cache the specified image."""

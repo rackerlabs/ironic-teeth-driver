@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from ironic.drivers import base
+from ironic.drivers.modules import ipmitool
 from ironic_teeth_driver import teeth
 
 
 class TeethDriver(base.BaseDriver):
     core_interfaces = ['power', 'deploy']
-    power = teeth.TeethPower
+    power = ipmitool.IPMIPower
     deploy = teeth.TeethDeploy

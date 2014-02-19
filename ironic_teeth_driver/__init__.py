@@ -19,6 +19,6 @@ from ironic_teeth_driver import teeth
 
 
 class TeethDriver(base.BaseDriver):
-    core_interfaces = ['power', 'deploy']
-    power = ipmitool.IPMIPower
-    deploy = teeth.TeethDeploy
+    def __init__(self):
+        self.power = ipmitool.IPMIPower()
+        self.deploy = teeth.TeethDeploy()

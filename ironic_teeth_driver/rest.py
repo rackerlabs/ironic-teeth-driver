@@ -29,7 +29,7 @@ class RESTAgentClient(object):
         self.log = log.getLogger(__name__)
 
     def _get_command_url(self, node):
-        return '{}/v1/commands'.format(node.driver_info['agent_url'])
+        return '{}/v1/commands'.format(self._get_command_url(node))
 
     def _get_command_body(self, method, params):
         return jsonutils.dumps({
@@ -56,7 +56,7 @@ class RESTAgentClient(object):
         """Attempt to cache the specified image."""
         self.log.debug('Caching image {image} on node {node}.',
                        image=image_info,
-                       node=node.url)
+                       node=self._get_command_url(node))
         return self._command(node, 'standby.cache_image', {
             'task_id': self.new_task_id(),
             'image_info': image_info,
@@ -66,7 +66,7 @@ class RESTAgentClient(object):
         """Call the `prepare_image` method on the node."""
         self.log.debug('Preparing image {image} on node {node}.',
                        image=image_info.get('image_id'),
-                       node=node.url)
+                       node=self._get_command_url(node))
         return self._command(node, 'standby.prepare_image', {
             'image_info': image_info,
             'metadata': metadata,
@@ -77,7 +77,8 @@ class RESTAgentClient(object):
     #TODO(pcsforeducation) Fix agent to only require node param
     def run_image(self, node):
         """Run the specified image."""
-        self.log.debug('Running image on node {node}.', node=node.url)
+        self.log.debug('Running image on node {node}.',
+                       node=self._get_command_url(node))
         return self._command(node, 'standby.run_image', {
             'task_id': self.new_task_id(),
         })
@@ -86,7 +87,7 @@ class RESTAgentClient(object):
         """Secures given drives with given key."""
         self.log.info('Securing drives {drives} for node {node}',
                       drives=drives,
-                      node=node.url)
+                      node=self._get_command_url(node))
         return self._command(node, 'decom.secure_drives', {
             'drives': drives,
             'key': key,
@@ -96,7 +97,7 @@ class RESTAgentClient(object):
         """Erases given drives."""
         self.log.info('Erasing drives {drives} for node {node}',
                       drives=drives,
-                      node=node.url)
+                      node=self._get_command_url(node))
         return self._command(node, 'decom.erase_drives', {
             'drives': drives,
             'key': key,

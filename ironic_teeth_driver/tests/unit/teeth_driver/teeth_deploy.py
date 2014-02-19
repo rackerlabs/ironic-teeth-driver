@@ -53,13 +53,15 @@ class TestTeethDeploy(unittest.TestCase):
 
     def test_validate(self):
         node = FakeNode()
-        self.driver.validate(node)
+        task = FakeTask()
+        self.driver.validate(task, node)
 
     def test_validate_fail(self):
         node = FakeNode()
+        task = FakeTask()
         del node.driver_info['agent_url']
         with self.assertRaises(exception.InvalidParameterValue):
-            self.driver.validate(node)
+            self.driver.validate(task, node)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_deploy(self, get_client_mock):

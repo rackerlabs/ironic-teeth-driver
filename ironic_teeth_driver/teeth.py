@@ -40,7 +40,7 @@ class TeethDeploy(base.DeployInterface):
         client = rest.RESTAgentClient({})
         return client
 
-    def validate(self, node):
+    def validate(self, task, node):
         """Validate the driver-specific Node deployment info.
 
         This method validates whether the 'driver_info' property of the
@@ -66,7 +66,7 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        self.validate(node)
+        self.validate(task, node)
 
         image_info = node.driver_info.get('image_info', None)
         metadata = node.driver_info.get('metadata', None)
@@ -101,7 +101,7 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        self.validate(node)
+        self.validate(task, node)
 
         # Set the node to decom in the DB
         node.provision_state = states.DELETING
@@ -126,7 +126,7 @@ class TeethDeploy(base.DeployInterface):
                      on this Conductor.
         """
 
-        self.validate(node)
+        self.validate(task, node)
 
         # Set the node to cache in the DB
         image_info = node.driver_info.get('image_info', None)
@@ -188,34 +188,3 @@ class TeethDeploy(base.DeployInterface):
         """
         # Unnecessary. Trying to keep everything as stateless as possible.
         pass
-
-
-class TeethPower(base.PowerInterface):
-    def validate(self, node):
-        """Validate the driver-specific Node power info.
-
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver to
-        manage the power state of the node.
-
-        :param node: a single Node to validate.
-        :raises: InvalidParameterValue
-        """
-
-    def get_power_state(self, task, node):
-        """Return the power state of the node.
-
-        TODO
-        """
-
-    def set_power_state(self, task, node, power_state):
-        """Set the power state of the node.
-
-        TODO
-        """
-
-    def reboot(self, task, node):
-        """Perform a hard reboot of the node.
-
-        TODO
-        """

@@ -51,7 +51,7 @@ class TeethDeploy(base.DeployInterface):
         :raises: InvalidParameterValue
         """
         if 'agent_url' not in node.driver_info:
-            raise exception.InvalidParameterValue('Nodes require an'
+            raise exception.InvalidParameterValue('Nodes require an '
                                                   'agent_url.')
 
     def deploy(self, task, node):
@@ -67,6 +67,7 @@ class TeethDeploy(base.DeployInterface):
         :returns: status of the deploy. One of ironic.common.states.
         """
         self.validate(node)
+
         image_info = node.driver_info.get('image_info', None)
         metadata = node.driver_info.get('metadata', None)
         files = node.driver_info.get('files', None)
@@ -124,25 +125,27 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node for which to prepare a deployment environment
                      on this Conductor.
         """
+
         self.validate(node)
 
         # Set the node to cache in the DB
         image_info = node.driver_info.get('image_info', None)
-        metadata = node.driver_info.get('metadata', None)
-        files = node.driver_info.get('files', None)
-        if image_info is None or metadata is None or files is None:
-            raise exception.InvalidParameterValue('image_info, metadata, '
-                                                  'and files are all required'
+        if image_info is None:
+            raise exception.InvalidParameterValue('image_info required '
                                                   'in driver_info.')
         node.provision_state = states.BUILDING
 
-        # states.PREPARED is in a patch waiting merge.
-        node.target_provision_state = states.PREPARED
+        #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
+        # when the merge is done upstream
+        node.target_provision_state = 'preparing'
         node.save(task.context)
 
         # Tell the agent to cache the image
         client = self._get_client()
-        client.cache_image(node)
+        client.cache_image(node, image_info)
+        #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
+        # when the merge is done upstream
+        return 'preparing'
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.

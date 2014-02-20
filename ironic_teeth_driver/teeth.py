@@ -94,7 +94,9 @@ class TeethDeploy(base.DeployInterface):
         client.run_image(node, wait=True)
         # TODO(pcsforeducation) don't return until we have a totally working
         # machine, so we'll need to do some kind of testing here.
-        return states.DEPLOYING
+        node.provision_state = states.DEPLOYDONE
+        node.save(task.context)
+        return states.DEPLOYDONE
 
     def tear_down(self, task, node):
         """Reboot the machine and begin decom.
@@ -135,21 +137,24 @@ class TeethDeploy(base.DeployInterface):
         self.validate(task, node, deploy_data)
 
         image_info = deploy_data.get('image_info')
+        force = deploy_data.get('force', False)
 
         # Set the node to cache in the DB
         node.provision_state = states.BUILDING
 
-        #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
+        #TODO(pcsforeducation) replace 'prepared' with states.PREPARED
         # when the merge is done upstream
-        node.target_provision_state = 'preparing'
+        node.target_provision_state = 'prepared'
         node.save(task.context)
 
         # Tell the agent to cache the image
         client = self._get_client()
-        client.cache_image(node, image_info, wait=True)
-        #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
+        client.cache_image(node, image_info, force=force, wait=True)
+        #TODO(pcsforeducation) replace 'preparing' with states.PREPARED
         # when the merge is done upstream
-        return 'preparing'
+        node.provision_state = 'prepared'
+        node.save(task.context)
+        return 'prepared'
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.

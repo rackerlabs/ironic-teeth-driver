@@ -84,8 +84,8 @@ class TestTeethDeploy(unittest.TestCase):
                                                      deploy_data['files'],
                                                      wait=True)
         client_mock.run_image.assert_called_with(node, wait=True)
-        self.assertEqual(driver_return, states.DEPLOYING)
-        self.assertEqual(node.provision_state, states.DEPLOYING)
+        self.assertEqual(driver_return, states.DEPLOYDONE)
+        self.assertEqual(node.provision_state, states.DEPLOYDONE)
         self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
 
     def test_deploy_bad_params(self):
@@ -127,12 +127,13 @@ class TestTeethDeploy(unittest.TestCase):
         driver_return = self.driver.prepare(self.task, node, deploy_data)
         client_mock.cache_image.assert_called_with(node,
                                                    deploy_data['image_info'],
+                                                   force=False,
                                                    wait=True)
-        self.assertEqual(driver_return, 'preparing')
-        #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
+        self.assertEqual(driver_return, 'prepared')
+        #TODO(pcsforeducation) replace 'preparing' with states.PREPARED
         # when the merge is done upstream
-        self.assertEqual(node.provision_state, states.BUILDING)
-        self.assertEqual(node.target_provision_state, 'preparing')
+        self.assertEqual(node.provision_state, 'prepared')
+        self.assertEqual(node.target_provision_state, 'prepared')
 
     def test_prepare_bad_params(self):
         with self.assertRaises(exception.InvalidParameterValue):

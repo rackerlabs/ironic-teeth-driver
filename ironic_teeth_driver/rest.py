@@ -31,15 +31,16 @@ class RESTAgentClient(object):
         #TODO(pcsforeducation) Probably should check for keyerrors
         return '{}/v1.0/commands'.format(node.driver_info['agent_url'])
 
-    def _get_command_body(self, method, params):
+    def _get_command_body(self, method, params, wait=False):
+        params['wait'] = wait
         return jsonutils.dumps({
             'name': method,
             'params': params,
         })
 
-    def _command(self, node, method, params):
+    def _command(self, node, method, params, wait=False):
         url = self._get_command_url(node)
-        body = self._get_command_body(method, params)
+        body = self._get_command_body(method, params, wait)
         headers = {
             'Content-Type': 'application/json'
         }
@@ -48,49 +49,63 @@ class RESTAgentClient(object):
         # TODO(russellhaering): real error handling
         return json.loads(response.text)
 
-    def cache_image(self, node, image_info):
+    def cache_image(self, node, image_info, wait=False):
         """Attempt to cache the specified image."""
         self.log.debug('Caching image {image} on node {node}.',
                        image=image_info,
                        node=self._get_command_url(node))
-        return self._command(node, 'standby.cache_image', {
-            'image_info': image_info,
-        })
+        params = {'image_info': image_info}
+        return self._command(node,
+                             'standby.cache_image',
+                             params,
+                             wait)
 
-    def prepare_image(self, node, image_info, metadata, files):
+    def prepare_image(self, node, image_info, metadata, files, wait=False):
         """Call the `prepare_image` method on the node."""
         self.log.debug('Preparing image {image} on node {node}.',
                        image=image_info.get('image_id'),
                        node=self._get_command_url(node))
-        return self._command(node, 'standby.prepare_image', {
-            'image_info': image_info,
-            'metadata': metadata,
-            'files': files,
-        })
+        params = {
+             'image_info': image_info,
+             'metadata': metadata,
+             'files': files,
+         }
+        return self._command(node,
+                             'standby.prepare_image',
+                             params,
+                             wait)
 
     #TODO(pcsforeducation) Fix agent to only require node param
-    def run_image(self, node):
+    def run_image(self, node, wait=False):
         """Run the specified image."""
         self.log.debug('Running image on node {node}.',
                        node=self._get_command_url(node))
-        return self._command(node, 'standby.run_image', {})
+        return self._command(node, 'standby.run_image', {}, wait)
 
-    def secure_drives(self, node, drives, key):
+    def secure_drives(self, node, drives, key, wait=False):
         """Secures given drives with given key."""
         self.log.info('Securing drives {drives} for node {node}',
                       drives=drives,
                       node=self._get_command_url(node))
-        return self._command(node, 'decom.secure_drives', {
+        params = {
             'drives': drives,
             'key': key,
-        })
+        }
+        return self._command(node,
+                             'decom.secure_drives',
+                             params,
+                             wait)
 
-    def erase_drives(self, node, drives, key):
+    def erase_drives(self, node, drives, key, wait=False):
         """Erases given drives."""
         self.log.info('Erasing drives {drives} for node {node}',
                       drives=drives,
                       node=self._get_command_url(node))
-        return self._command(node, 'decom.erase_drives', {
+        params = {
             'drives': drives,
             'key': key,
-        })
+        }
+        return self._command(node,
+                             'decom.erase_drives',
+                             params,
+                             wait)

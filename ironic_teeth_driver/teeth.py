@@ -89,9 +89,11 @@ class TeethDeploy(base.DeployInterface):
 
         # Tell the client to run the image with the given args
         client = self._get_client()
-        client.prepare_image(node, image_info, metadata, files)
+        client.prepare_image(node, image_info, metadata, files, wait=True)
         # TODO(pcsforeducation) Switch network here
-        client.run_image(node)
+        client.run_image(node, wait=True)
+        # TODO(pcsforeducation) don't return until we have a totally working
+        # machine, so we'll need to do some kind of testing here.
         return states.DEPLOYING
 
     def tear_down(self, task, node):
@@ -144,7 +146,7 @@ class TeethDeploy(base.DeployInterface):
 
         # Tell the agent to cache the image
         client = self._get_client()
-        client.cache_image(node, image_info)
+        client.cache_image(node, image_info, wait=True)
         #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
         # when the merge is done upstream
         return 'preparing'

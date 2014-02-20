@@ -81,8 +81,9 @@ class TestTeethDeploy(unittest.TestCase):
         client_mock.prepare_image.assert_called_with(node,
                                                      deploy_data['image_info'],
                                                      deploy_data['metadata'],
-                                                     deploy_data['files'])
-        client_mock.run_image.assert_called_with(node)
+                                                     deploy_data['files'],
+                                                     wait=True)
+        client_mock.run_image.assert_called_with(node, wait=True)
         self.assertEqual(driver_return, states.DEPLOYING)
         self.assertEqual(node.provision_state, states.DEPLOYING)
         self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
@@ -125,7 +126,8 @@ class TestTeethDeploy(unittest.TestCase):
 
         driver_return = self.driver.prepare(self.task, node, deploy_data)
         client_mock.cache_image.assert_called_with(node,
-                                                   deploy_data['image_info'])
+                                                   deploy_data['image_info'],
+                                                   wait=True)
         self.assertEqual(driver_return, 'preparing')
         #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
         # when the merge is done upstream

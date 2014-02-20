@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import collections
-
-from ironic_teeth_driver import config as teeth_config
-
 import json
 import mock
 import unittest
@@ -25,54 +22,10 @@ from werkzeug import test
 from werkzeug import wrappers
 
 
-TEST_CONFIG = {
-    "CASSANDRA_CLUSTER": ["localhost:9160"],
-    "CASSANDRA_CONSISTENCY": "ONE",
-
-    "PUBLIC_API_HOST": "0.0.0.0",
-    "PUBLIC_API_PORT": 8080,
-
-    "AGENT_API_HOST": "0.0.0.0",
-    "AGENT_API_PORT": 8081,
-
-    "AGENT_PROTOCOL": "http",
-    "AGENT_PORT": 9999,
-
-    "AVAILABILITY_ZONE": "teeth",
-
-    "MAX_USER_METADATA_SIZE": 1000,
-    "MAX_INSTANCE_FILES": 1000,
-    "MAX_INSTANCE_FILE_SIZE": 4096,
-
-    "JOB_EXECUTION_THREADS": 16,
-
-    "MARCONI_URL": "http://localhost:8888",
-
-    "IMAGE_PROVIDER": "fake",
-    "OOB_PROVIDER": "fake",
-    "AGENT_CLIENT": "fake",
-    "NETWORK_PROVIDER": "fake",
-    "PRETTY_LOGGING": True,
-
-    "STATSD_HOST": "localhost",
-    "STATSD_PORT": 8125,
-    "STATSD_PREFIX": "teeth",
-    "STATSD_ENABLED": True,
-
-    "ETCD_HOST": "localhost",
-    "ETCD_PORT": 4001,
-    "ETC_CONFIG_DIR": "teeth_config",
-
-    "CONFIG_SOURCES": []
-}
-
-
 class TeethMockTestUtilities(unittest.TestCase):
 
     def setUp(self):
         self._patches = collections.defaultdict(dict)
-
-        self.config = teeth_config.LazyConfig(config=TEST_CONFIG)
 
     def _get_env_builder(self, method, path, data=None, query=None):
         if data:

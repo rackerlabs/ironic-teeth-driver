@@ -1,4 +1,3 @@
 requests==2.0.0
--e git+https://github.com/jplana/python-etcd.git@9aaf0fe6ed33d88f7cdfd656c34eaa6d405d79e2#egg=python_etcd-lock-support
 pyghmi==0.5.8
 -e git://github.com/openstack/ironic.git@b7a243b63f4f00535d85cde4f48420e478f8368b#egg=ironic

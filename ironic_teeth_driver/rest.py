@@ -23,10 +23,8 @@ import uuid
 
 class RESTAgentClient(object):
     """Client for interacting with nodes via a REST API."""
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.session = requests.Session()
-        #TODO(pcsforeducation) re-enable logging with structlog
         self.log = log.getLogger(__name__)
 
     def _get_command_url(self, node):

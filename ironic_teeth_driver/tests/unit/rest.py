@@ -37,7 +37,7 @@ class MockNode(object):
 class TestRESTAgentClient(tests.TeethMockTestUtilities):
     def setUp(self):
         super(TestRESTAgentClient, self).setUp()
-        self.client = agent_client.RESTAgentClient(tests.TEST_CONFIG)
+        self.client = agent_client.RESTAgentClient()
         self.client.session = mock.Mock(autospec=requests.Session)
         self.node = MockNode()
 

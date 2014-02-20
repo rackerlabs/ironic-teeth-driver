@@ -27,14 +27,16 @@ class FakeNode():
 
     def __init__(self):
         self.driver_info = {
+            'agent_url': 'http://127.0.0.1/foo'
+        }
+        self.deploy_data = {
             'image_info': {
                 'image_id': 'test'
             },
             'metadata': {
                 'foo': 'bar'
             },
-            'files': ['foo.tar.gz'],
-            'agent_url': 'http://127.0.0.1/foo'
+            'files': ['foo.tar.gz']
         }
 
     def save(self, context):
@@ -66,7 +68,7 @@ class TestTeethDeploy(unittest.TestCase):
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_deploy(self, get_client_mock):
         node = FakeNode()
-        driver_info = node.driver_info
+        deploy_data = node.deploy_data
 
         client_mock = mock.Mock()
 
@@ -75,11 +77,11 @@ class TestTeethDeploy(unittest.TestCase):
 
         get_client_mock.return_value = client_mock
 
-        driver_return = self.driver.deploy(self.task, node)
+        driver_return = self.driver.deploy(self.task, node, deploy_data)
         client_mock.prepare_image.assert_called_with(node,
-                                                     driver_info['image_info'],
-                                                     driver_info['metadata'],
-                                                     node.driver_info['files'])
+                                                     deploy_data['image_info'],
+                                                     deploy_data['metadata'],
+                                                     deploy_data['files'])
         client_mock.run_image.assert_called_with(node)
         self.assertEqual(driver_return, states.DEPLOYING)
         self.assertEqual(node.provision_state, states.DEPLOYING)
@@ -89,18 +91,15 @@ class TestTeethDeploy(unittest.TestCase):
 
         with self.assertRaises(exception.InvalidParameterValue):
             node = FakeNode()
-            del node.driver_info['image_info']
-            self.driver.deploy(self.task, node)
+            deploy_data = node.deploy_data
+            del deploy_data['image_info']
+            self.driver.deploy(self.task, node, deploy_data)
 
         with self.assertRaises(exception.InvalidParameterValue):
             node = FakeNode()
-            del node.driver_info['metadata']
-            self.driver.deploy(self.task, node)
-
-        with self.assertRaises(exception.InvalidParameterValue):
-            node = FakeNode()
-            del node.driver_info['files']
-            self.driver.deploy(self.task, node)
+            deploy_data = node.deploy_data
+            del deploy_data['metadata']
+            self.driver.deploy(self.task, node, deploy_data)
 
     @mock.patch('ironic.conductor.utils.node_power_action')
     def test_tear_down(self, power_mock):
@@ -116,16 +115,17 @@ class TestTeethDeploy(unittest.TestCase):
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_prepare(self, get_client_mock):
         node = FakeNode()
-        driver_info = node.driver_info
+        # driver_info = node.driver_info
+        deploy_data = node.deploy_data
 
         client_mock = mock.Mock()
         client_mock.cache_image.return_value = None
 
         get_client_mock.return_value = client_mock
 
-        driver_return = self.driver.prepare(self.task, node)
+        driver_return = self.driver.prepare(self.task, node, deploy_data)
         client_mock.cache_image.assert_called_with(node,
-                                                   driver_info['image_info'])
+                                                   deploy_data['image_info'])
         self.assertEqual(driver_return, 'preparing')
         #TODO(pcsforeducation) replace 'preparing' with states.PREPARING
         # when the merge is done upstream
@@ -135,5 +135,6 @@ class TestTeethDeploy(unittest.TestCase):
     def test_prepare_bad_params(self):
         with self.assertRaises(exception.InvalidParameterValue):
             node = FakeNode()
-            del node.driver_info['image_info']
-            self.driver.prepare(self.task, node)
+            deploy_data = node.deploy_data
+            del deploy_data['image_info']
+            self.driver.prepare(self.task, node, deploy_data)

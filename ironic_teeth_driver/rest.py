@@ -18,7 +18,6 @@ from ironic.openstack.common import log
 
 import json
 import requests
-import uuid
 
 
 class RESTAgentClient(object):
@@ -29,7 +28,8 @@ class RESTAgentClient(object):
         self.log = log.getLogger(__name__)
 
     def _get_command_url(self, node):
-        return '{}/v1/commands'.format(self._get_command_url(node))
+        #TODO(pcsforeducation) Probably should check for keyerrors
+        return '{}/v1.0/commands'.format(node.driver_info['agent_url'])
 
     def _get_command_body(self, method, params):
         return jsonutils.dumps({
@@ -48,17 +48,12 @@ class RESTAgentClient(object):
         # TODO(russellhaering): real error handling
         return json.loads(response.text)
 
-    def new_task_id(self):
-        """Generate a serialized UUID for use as a task ID."""
-        return str(uuid.uuid4())
-
     def cache_image(self, node, image_info):
         """Attempt to cache the specified image."""
         self.log.debug('Caching image {image} on node {node}.',
                        image=image_info,
                        node=self._get_command_url(node))
         return self._command(node, 'standby.cache_image', {
-            'task_id': self.new_task_id(),
             'image_info': image_info,
         })
 
@@ -71,7 +66,6 @@ class RESTAgentClient(object):
             'image_info': image_info,
             'metadata': metadata,
             'files': files,
-            'task_id': self.new_task_id(),
         })
 
     #TODO(pcsforeducation) Fix agent to only require node param
@@ -79,9 +73,7 @@ class RESTAgentClient(object):
         """Run the specified image."""
         self.log.debug('Running image on node {node}.',
                        node=self._get_command_url(node))
-        return self._command(node, 'standby.run_image', {
-            'task_id': self.new_task_id(),
-        })
+        return self._command(node, 'standby.run_image', {})
 
     def secure_drives(self, node, drives, key):
         """Secures given drives with given key."""

@@ -40,7 +40,7 @@ class TeethDeploy(base.DeployInterface):
         client = rest.RESTAgentClient({})
         return client
 
-    def validate(self, task, node):
+    def validate(self, task, node, deploy_data=None):
         """Validate the driver-specific Node deployment info.
 
         This method validates whether the 'driver_info' property of the
@@ -53,8 +53,12 @@ class TeethDeploy(base.DeployInterface):
         if 'agent_url' not in node.driver_info:
             raise exception.InvalidParameterValue('Nodes require an '
                                                   'agent_url.')
+        if deploy_data is not None:
+            if 'image_info' not in deploy_data:
+                raise exception.InvalidParameterValue('Nodes require '
+                                                      'image_info.')
 
-    def deploy(self, task, node):
+    def deploy(self, task, node, deploy_data):
         """Perform a deployment to a node.
 
         Perform the necessary work to deploy an image onto the specified node.
@@ -64,21 +68,20 @@ class TeethDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
+        :param deploy_data: A dictionary of extra data to pass to the agent.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        self.validate(task, node)
+        self.validate(task, node, deploy_data)
 
-        image_info = node.driver_info.get('image_info', None)
-        metadata = node.driver_info.get('metadata', None)
-        files = node.driver_info.get('files', None)
-        if image_info is None:
-            raise exception.InvalidParameterValue('image_info required for '
-                                                  'deploy.')
+        image_info = deploy_data.get('image_info')
+        metadata = deploy_data.get('metadata', None)
+        files = deploy_data.get('files', None)
+
+        # Additional validation
         if metadata is None:
-            raise exception.InvalidParameterValue('metadata required for '
+            raise exception.InvalidParameterValue('metadata in '
+                                                  'deploy_data required for '
                                                   'deploy.')
-        if files is None:
-            raise exception.InvalidParameterValue('files required for deploy.')
 
         node.provision_state = states.DEPLOYING
         node.target_provision_state = states.DEPLOYDONE
@@ -112,7 +115,7 @@ class TeethDeploy(base.DeployInterface):
         manager_utils.node_power_action(task, node, states.REBOOT)
         return states.DELETING
 
-    def prepare(self, task, node):
+    def prepare(self, task, node, deploy_data):
         """Prepare the deployment environment for this node.
 
         The method must be idempotent. It will be called right before
@@ -124,15 +127,14 @@ class TeethDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :param node: the Node for which to prepare a deployment environment
                      on this Conductor.
+        :param deploy_data: A dictionary of extra data to pass to the agent.
         """
 
-        self.validate(task, node)
+        self.validate(task, node, deploy_data)
+
+        image_info = deploy_data.get('image_info')
 
         # Set the node to cache in the DB
-        image_info = node.driver_info.get('image_info', None)
-        if image_info is None:
-            raise exception.InvalidParameterValue('image_info required '
-                                                  'in driver_info.')
         node.provision_state = states.BUILDING
 
         #TODO(pcsforeducation) replace 'preparing' with states.PREPARING

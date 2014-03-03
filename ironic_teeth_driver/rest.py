@@ -23,8 +23,7 @@ import uuid
 
 class RESTAgentClient(object):
     """Client for interacting with nodes via a REST API."""
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.session = requests.Session()
         self.log = log.getLogger(__name__)
 
@@ -54,9 +53,9 @@ class RESTAgentClient(object):
 
     def cache_image(self, node, image_info):
         """Attempt to cache the specified image."""
-        self.log.debug('Caching image {image} on node {node}.',
+        self.log.debug('Caching image {image} on node {node}.'.format(
                        image=image_info,
-                       node=node.url)
+                       node=node.driver_info['agent_url']))
         return self._command(node, 'standby.cache_image', {
             'task_id': self.new_task_id(),
             'image_info': image_info,
@@ -64,9 +63,9 @@ class RESTAgentClient(object):
 
     def prepare_image(self, node, image_info, metadata, files):
         """Call the `prepare_image` method on the node."""
-        self.log.debug('Preparing image {image} on node {node}.',
+        self.log.debug('Preparing image {image} on node {node}.'.format(
                        image=image_info.get('image_id'),
-                       node=node.url)
+                       node=node.driver_info['agent_url']))
         return self._command(node, 'standby.prepare_image', {
             'image_info': image_info,
             'metadata': metadata,
@@ -77,16 +76,16 @@ class RESTAgentClient(object):
     #TODO(pcsforeducation) match agent function def to this.
     def run_image(self, node):
         """Run the specified image."""
-        self.log.debug('Running image {image} on node {node}.')
+        # self.log.debug('Running image {image} on node {node}.')
         return self._command(node, 'standby.run_image', {
             'task_id': self.new_task_id()
         })
 
     def secure_drives(self, node, drives, key):
         """Secures given drives with given key."""
-        self.log.info('Securing drives {drives} for node {node}',
+        self.log.info('Securing drives {drives} for node {node}'.format(
                       drives=drives,
-                      node=node.url)
+                      node=node.driver_info['agent_url']))
         return self._command(node, 'decom.secure_drives', {
             'drives': drives,
             'key': key,
@@ -94,9 +93,9 @@ class RESTAgentClient(object):
 
     def erase_drives(self, node, drives, key):
         """Erases given drives."""
-        self.log.info('Erasing drives {drives} for node {node}',
+        self.log.info('Erasing drives {drives} for node {node}'.format(
                       drives=drives,
-                      node=node.url)
+                      node=node.driver_info['agent_url']))
         return self._command(node, 'decom.erase_drives', {
             'drives': drives,
             'key': key,

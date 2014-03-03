@@ -30,7 +30,7 @@ class MockResponse(object):
 class MockNode(object):
     def __init__(self):
         self.driver_info = {
-            'agent_url': "127.0.0.1/foo"
+            'agent_url': "http://127.0.0.1:9999"
         }
 
 

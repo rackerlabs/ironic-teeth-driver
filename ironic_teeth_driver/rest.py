@@ -31,8 +31,7 @@ class RESTAgentClient(object):
         #TODO(pcsforeducation) Probably should check for keyerrors
         return '{}/v1.0/commands'.format(node.driver_info['agent_url'])
 
-    def _get_command_body(self, method, params, wait=False):
-        params['wait'] = wait
+    def _get_command_body(self, method, params):
         return jsonutils.dumps({
             'name': method,
             'params': params,
@@ -55,35 +54,33 @@ class RESTAgentClient(object):
                        image=image_info,
                        node=self._get_command_url(node)))
         params = {
-            'image_info': image_info,
-            'force': force
+              'image_info': image_info,
+              'force': force
         }
         return self._command(node,
                              'standby.cache_image',
                              params,
                              wait)
 
-    def prepare_image(self, node, image_info, metadata, files, wait=False):
+    def prepare_image(self, node, image_info, metadata, files):
         """Call the `prepare_image` method on the node."""
-        self.log.debug('Preparing image {image} on node {node}.'.format(
+        self.log.debug('Preparing image {image} on node {node}.',
                        image=image_info.get('image_id'),
-                       node=self._get_command_url(node)))
-        params = {
-             'image_info': image_info,
-             'metadata': metadata,
-             'files': files,
-        }
-        return self._command(node,
-                             'standby.prepare_image',
-                             params,
-                             wait)
+                       node=node.url)
+        return self._command(node, 'standby.prepare_image', {
+            'image_info': image_info,
+            'metadata': metadata,
+            'files': files,
+            'task_id': self.new_task_id(),
+        })
 
-    #TODO(pcsforeducation) Fix agent to only require node param
-    def run_image(self, node, wait=False):
+    #TODO(pcsforeducation) match agent function def to this.
+    def run_image(self, node):
         """Run the specified image."""
-        self.log.debug('Running image on node {node}.'.format(
-                       node=self._get_command_url(node)))
-        return self._command(node, 'standby.run_image', {}, wait)
+        self.log.debug('Running image {image} on node {node}.')
+        return self._command(node, 'standby.run_image', {
+            'task_id': self.new_task_id()
+        })
 
     def secure_drives(self, node, drives, key, wait=False):
         """Secures given drives with given key."""

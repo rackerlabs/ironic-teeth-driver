@@ -23,8 +23,7 @@ import requests
 
 class RESTAgentClient(object):
     """Client for interacting with nodes via a REST API."""
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.session = requests.Session()
         self.log = log.getLogger(__name__)
 
@@ -42,12 +41,14 @@ class RESTAgentClient(object):
     def _command(self, node, method, params, wait=False):
         url = self._get_command_url(node)
         body = self._get_command_body(method, params)
-        params['wait'] = wait
+        request_params = {
+            'wait': str(wait).lower()
+        }
         headers = {
             'Content-Type': 'application/json'
         }
         response = self.session.post(url,
-                                     params=params,
+                                     params=request_params,
                                      data=body,
                                      headers=headers)
 
@@ -70,9 +71,9 @@ class RESTAgentClient(object):
 
     def prepare_image(self, node, image_info, metadata, files, wait=False):
         """Call the `prepare_image` method on the node."""
-        self.log.debug('Preparing image {image} on node {node}.',
+        self.log.debug('Preparing image {image} on node {node}.'.format(
                        image=image_info.get('image_id'),
-                       node=node.url)
+                       node=self._get_command_url(node)))
         return self._command(node=node,
                              method='standby.prepare_image',
                              params={

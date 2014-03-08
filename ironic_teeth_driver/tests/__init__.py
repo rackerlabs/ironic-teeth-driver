@@ -14,40 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import collections
-import json
 import mock
 import unittest
-
-from werkzeug import test
-from werkzeug import wrappers
 
 
 class TeethMockTestUtilities(unittest.TestCase):
 
     def setUp(self):
         self._patches = collections.defaultdict(dict)
-
-    def _get_env_builder(self, method, path, data=None, query=None):
-        if data:
-            data = json.dumps(data)
-
-        # makes remote_addr work correctly
-        environ_base = {'REMOTE_ADDR': '127.0.0.1'}
-
-        return test.EnvironBuilder(method=method,
-                                   path=path,
-                                   data=data,
-                                   content_type='application/json',
-                                   query_string=query,
-                                   environ_base=environ_base)
-
-    def build_request(self, method, path, data=None, query=None):
-        env_builder = self._get_env_builder(method, path, data, query)
-        return env_builder.get_request(wrappers.BaseRequest)
-
-    def make_request(self, method, path, data=None, query=None):
-        client = test.Client(self.api, wrappers.BaseResponse)
-        return client.open(self._get_env_builder(method, path, data, query))
 
     def _mock_class(self, cls, return_value=None, side_effect=None,
                     autospec=False):

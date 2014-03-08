@@ -45,12 +45,16 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
     def test_cache_image(self):
         _command = self._mock_attr(self.client, '_command')
         image_info = {'image_id': 'image'}
-        params = {'task_id': 'uuid', 'image_info': image_info}
+        params = {
+            'image_info': image_info,
+            'force': False,
+        }
 
         self.client.cache_image(self.node, image_info)
-        _command.assert_called_once_with(self.node,
-                                         'standby.cache_image',
-                                         params)
+        _command.assert_called_once_with(node=self.node,
+                                         method='standby.cache_image',
+                                         params=params,
+                                         wait=False)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
     def test_prepare_image(self):
@@ -59,7 +63,6 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
         metadata = {}
         files = {}
         params = {
-            'task_id': 'uuid',
             'image_info': image_info,
             'metadata': metadata,
             'files': files,
@@ -69,19 +72,21 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
                                   image_info,
                                   metadata,
                                   files)
-        _command.assert_called_once_with(self.node,
-                                         'standby.prepare_image',
-                                         params)
+        _command.assert_called_once_with(node=self.node,
+                                         method='standby.prepare_image',
+                                         params=params,
+                                         wait=False)
 
     @mock.patch('uuid.uuid4', mock.MagicMock(return_value='uuid'))
     def test_run_image(self):
         _command = self._mock_attr(self.client, '_command')
-        params = {'task_id': 'uuid'}
+        params = {}
 
         self.client.run_image(self.node)
-        _command.assert_called_once_with(self.node,
-                                         'standby.run_image',
-                                         params)
+        _command.assert_called_once_with(node=self.node,
+                                         method='standby.run_image',
+                                         params=params,
+                                         wait=False)
 
     def test_secure_drives(self):
         _command = self._mock_attr(self.client, '_command')
@@ -90,9 +95,10 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
         params = {'key': key, 'drives': drives}
 
         self.client.secure_drives(self.node, drives, key)
-        _command.assert_called_once_with(self.node,
-                                         'decom.secure_drives',
-                                         params)
+        _command.assert_called_once_with(node=self.node,
+                                         method='decom.secure_drives',
+                                         params=params,
+                                         wait=False)
 
     def test_erase_drives(self):
         _command = self._mock_attr(self.client, '_command')
@@ -101,16 +107,17 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
         params = {'key': key, 'drives': drives}
 
         self.client.erase_drives(self.node, drives, key)
-        _command.assert_called_once_with(self.node,
-                                         'decom.erase_drives',
-                                         params)
+        _command.assert_called_once_with(node=self.node,
+                                         method='decom.erase_drives',
+                                         params=params,
+                                         wait=False)
 
     def test_command(self):
         response_data = {'status': 'ok'}
         self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
-        params = {'task_id': 'uuid', 'image_info': image_info}
+        params = {'image_info': image_info}
 
         url = self.client._get_command_url(self.node)
         body = self.client._get_command_body(method, params)
@@ -118,6 +125,8 @@ class TestRESTAgentClient(tests.TeethMockTestUtilities):
 
         response = self.client._command(self.node, method, params)
         self.assertEqual(response, response_data)
-        self.client.session.post.assert_called_once_with(url,
-                                                         data=body,
-                                                         headers=headers)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            headers=headers,
+            params={'wait': 'false'})

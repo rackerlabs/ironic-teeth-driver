@@ -13,3 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from ironic.drivers import base
+from ironic.drivers.modules import ipmitool
+from ironic_teeth_driver import teeth
+
+
+class TeethDriver(base.BaseDriver):
+    def __init__(self):
+        self.power = ipmitool.IPMIPower()
+        self.deploy = teeth.TeethDeploy()

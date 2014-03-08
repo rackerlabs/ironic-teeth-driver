@@ -1,5 +1,5 @@
 """
-Copyright 2013 Rackspace, Inc.
+Copyright 2014 Rackspace, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from ironic.common import exception
 from ironic.openstack.common import jsonutils
 from ironic.openstack.common import log
 
 import json
 import requests
-import uuid
 
 
 class RESTAgentClient(object):
@@ -28,7 +28,9 @@ class RESTAgentClient(object):
         self.log = log.getLogger(__name__)
 
     def _get_command_url(self, node):
-        return '{}/v1/commands'.format(node.driver_info['agent_url'])
+        if 'agent_url' not in node.driver_info:
+            raise exception.IronicException('REST Agent requires agent_url')
+        return '{}/v1.0/commands'.format(node.driver_info['agent_url'])
 
     def _get_command_body(self, method, params):
         return jsonutils.dumps({
@@ -36,67 +38,84 @@ class RESTAgentClient(object):
             'params': params,
         })
 
-    def _command(self, node, method, params):
+    def _command(self, node, method, params, wait=False):
         url = self._get_command_url(node)
         body = self._get_command_body(method, params)
+        request_params = {
+            'wait': str(wait).lower()
+        }
         headers = {
             'Content-Type': 'application/json'
         }
-        response = self.session.post(url, data=body, headers=headers)
+        response = self.session.post(url,
+                                     params=request_params,
+                                     data=body,
+                                     headers=headers)
 
         # TODO(russellhaering): real error handling
         return json.loads(response.text)
 
-    def new_task_id(self):
-        """Generate a serialized UUID for use as a task ID."""
-        return str(uuid.uuid4())
-
-    def cache_image(self, node, image_info):
+    def cache_image(self, node, image_info, force=False, wait=False):
         """Attempt to cache the specified image."""
         self.log.debug('Caching image {image} on node {node}.'.format(
                        image=image_info,
-                       node=node.driver_info['agent_url']))
-        return self._command(node, 'standby.cache_image', {
-            'task_id': self.new_task_id(),
-            'image_info': image_info,
-        })
+                       node=self._get_command_url(node)))
+        params = {
+              'image_info': image_info,
+              'force': force
+        }
+        return self._command(node=node,
+                             method='standby.cache_image',
+                             params=params,
+                             wait=wait)
 
-    def prepare_image(self, node, image_info, metadata, files):
+    def prepare_image(self, node, image_info, metadata, files, wait=False):
         """Call the `prepare_image` method on the node."""
         self.log.debug('Preparing image {image} on node {node}.'.format(
                        image=image_info.get('image_id'),
-                       node=node.driver_info['agent_url']))
-        return self._command(node, 'standby.prepare_image', {
-            'image_info': image_info,
-            'metadata': metadata,
-            'files': files,
-            'task_id': self.new_task_id(),
-        })
+                       node=self._get_command_url(node)))
+        return self._command(node=node,
+                             method='standby.prepare_image',
+                             params={
+                                 'image_info': image_info,
+                                 'metadata': metadata,
+                                 'files': files,
+                             },
+                             wait=wait)
 
     #TODO(pcsforeducation) match agent function def to this.
-    def run_image(self, node):
+    def run_image(self, node, wait=False):
         """Run the specified image."""
-        # self.log.debug('Running image {image} on node {node}.')
-        return self._command(node, 'standby.run_image', {
-            'task_id': self.new_task_id()
-        })
+        self.log.debug('Running image {image} on node {node}.')
+        return self._command(node=node,
+                             method='standby.run_image',
+                             params={},
+                             wait=wait)
 
-    def secure_drives(self, node, drives, key):
+    def secure_drives(self, node, drives, key, wait=False):
         """Secures given drives with given key."""
         self.log.info('Securing drives {drives} for node {node}'.format(
                       drives=drives,
-                      node=node.driver_info['agent_url']))
-        return self._command(node, 'decom.secure_drives', {
+                      node=self._get_command_url(node)))
+        params = {
             'drives': drives,
             'key': key,
-        })
+        }
+        return self._command(node=node,
+                             method='decom.secure_drives',
+                             params=params,
+                             wait=wait)
 
-    def erase_drives(self, node, drives, key):
+    def erase_drives(self, node, drives, key, wait=False):
         """Erases given drives."""
         self.log.info('Erasing drives {drives} for node {node}'.format(
                       drives=drives,
-                      node=node.driver_info['agent_url']))
-        return self._command(node, 'decom.erase_drives', {
+                      node=self._get_command_url(node)))
+        params = {
             'drives': drives,
             'key': key,
-        })
+        }
+        return self._command(node=node,
+                             method='decom.erase_drives',
+                             params=params,
+                             wait=wait)

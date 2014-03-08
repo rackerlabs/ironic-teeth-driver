@@ -68,7 +68,7 @@ class RESTAgentClient(object):
                              params=params,
                              wait=wait)
 
-    def prepare_image(self, node, image_info, metadata, files):
+    def prepare_image(self, node, image_info, metadata, files, wait=False):
         """Call the `prepare_image` method on the node."""
         self.log.debug('Preparing image {image} on node {node}.',
                        image=image_info.get('image_id'),
@@ -79,15 +79,17 @@ class RESTAgentClient(object):
                                  'image_info': image_info,
                                  'metadata': metadata,
                                  'files': files,
-                             })
+                             },
+                             wait=wait)
 
     #TODO(pcsforeducation) match agent function def to this.
-    def run_image(self, node):
+    def run_image(self, node, wait=False):
         """Run the specified image."""
         self.log.debug('Running image {image} on node {node}.')
         return self._command(node=node,
                              method='standby.run_image',
-                             params={})
+                             params={},
+                             wait=wait)
 
     def secure_drives(self, node, drives, key, wait=False):
         """Secures given drives with given key."""

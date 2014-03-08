@@ -57,6 +57,13 @@ class TeethDeploy(base.DeployInterface):
             if 'image_info' not in deploy_data:
                 raise exception.InvalidParameterValue('Nodes require '
                                                       'image_info.')
+            if 'metadata' not in deploy_data:
+                raise exception.InvalidParameterValue('metadata in '
+                                                      'deploy_data required '
+                                                      'for deploy.')
+            if 'files' not in deploy_data:
+                raise exception.InvalidParameterValue('files in deploy_data '
+                                                      'required for deploy.')
 
     def deploy(self, task, node, deploy_data):
         """Perform a deployment to a node.
@@ -71,17 +78,9 @@ class TeethDeploy(base.DeployInterface):
         :param deploy_data: A dictionary of extra data to pass to the agent.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        self.validate(task, node, deploy_data)
-
         image_info = deploy_data.get('image_info')
-        metadata = deploy_data.get('metadata', None)
-        files = deploy_data.get('files', None)
-
-        # Additional validation
-        if metadata is None:
-            raise exception.InvalidParameterValue('metadata in '
-                                                  'deploy_data required for '
-                                                  'deploy.')
+        metadata = deploy_data.get('metadata')
+        files = deploy_data.get('files')
 
         node.provision_state = states.DEPLOYING
         node.target_provision_state = states.DEPLOYDONE
@@ -108,8 +107,6 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        self.validate(task, node)
-
         # Set the node to decom in the DB
         node.provision_state = states.DELETING
         node.target_provision_state = states.DELETED
@@ -133,9 +130,6 @@ class TeethDeploy(base.DeployInterface):
                      on this Conductor.
         :param deploy_data: A dictionary of extra data to pass to the agent.
         """
-
-        self.validate(task, node, deploy_data)
-
         image_info = deploy_data.get('image_info')
         force = deploy_data.get('force', False)
 

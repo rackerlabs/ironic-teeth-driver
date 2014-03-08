@@ -21,7 +21,7 @@ import mock
 import unittest
 
 
-class FakeNode():
+class FakeNode(object):
     provision_state = states.NOSTATE
     target_provision_state = states.NOSTATE
 
@@ -43,7 +43,7 @@ class FakeNode():
         pass
 
 
-class FakeTask():
+class FakeTask(object):
     def __init__(self):
         self.context = {}
 
@@ -88,20 +88,6 @@ class TestTeethDeploy(unittest.TestCase):
         self.assertEqual(node.provision_state, states.DEPLOYDONE)
         self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
 
-    def test_deploy_bad_params(self):
-
-        with self.assertRaises(exception.InvalidParameterValue):
-            node = FakeNode()
-            deploy_data = node.deploy_data
-            del deploy_data['image_info']
-            self.driver.deploy(self.task, node, deploy_data)
-
-        with self.assertRaises(exception.InvalidParameterValue):
-            node = FakeNode()
-            deploy_data = node.deploy_data
-            del deploy_data['metadata']
-            self.driver.deploy(self.task, node, deploy_data)
-
     @mock.patch('ironic.conductor.utils.node_power_action')
     def test_tear_down(self, power_mock):
         node = FakeNode()
@@ -135,9 +121,9 @@ class TestTeethDeploy(unittest.TestCase):
         self.assertEqual(node.provision_state, 'prepared')
         self.assertEqual(node.target_provision_state, 'prepared')
 
-    def test_prepare_bad_params(self):
+    def test_validate_bad_params(self):
         with self.assertRaises(exception.InvalidParameterValue):
             node = FakeNode()
             deploy_data = node.deploy_data
             del deploy_data['image_info']
-            self.driver.prepare(self.task, node, deploy_data)
+            self.driver.validate(self.task, node, deploy_data)

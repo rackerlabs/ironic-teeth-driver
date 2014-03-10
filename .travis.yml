@@ -8,7 +8,7 @@ env:
 install:
 - pip install tox
 script:
-- tox -vv -e $TOX_ENV -- echo 'done'
+- tox -vv -e $TOX_ENV
 notifications:
   irc:
     channels:

@@ -29,7 +29,7 @@ class FakeNode(object):
         self.driver_info = {
             'agent_url': 'http://127.0.0.1/foo'
         }
-        self.deploy_data = {
+        self.instance_info = {
             'image_info': {
                 'image_id': 'test'
             },
@@ -54,16 +54,15 @@ class TestTeethDeploy(unittest.TestCase):
         self.task = FakeTask()
 
     def test_validate(self):
-        node = FakeNode()
         task = FakeTask()
-        self.driver.validate(task, node)
+        self.driver.validate(task)
 
     def test_validate_fail(self):
         node = FakeNode()
         task = FakeTask()
         del node.driver_info['agent_url']
         with self.assertRaises(exception.InvalidParameterValue):
-            self.driver.validate(task, node)
+            self.driver.validate(task)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_deploy(self, get_client_mock):
@@ -77,7 +76,7 @@ class TestTeethDeploy(unittest.TestCase):
 
         get_client_mock.return_value = client_mock
 
-        driver_return = self.driver.deploy(self.task, node, deploy_data)
+        driver_return = self.driver.deploy(self.task, node)
         client_mock.prepare_image.assert_called_with(node,
                                                      deploy_data['image_info'],
                                                      deploy_data['metadata'],
@@ -110,7 +109,7 @@ class TestTeethDeploy(unittest.TestCase):
 
         get_client_mock.return_value = client_mock
 
-        driver_return = self.driver.prepare(self.task, node, deploy_data)
+        driver_return = self.driver.prepare(self.task, node)
         client_mock.cache_image.assert_called_with(node,
                                                    deploy_data['image_info'],
                                                    force=False,
@@ -126,4 +125,4 @@ class TestTeethDeploy(unittest.TestCase):
             node = FakeNode()
             deploy_data = node.deploy_data
             del deploy_data['image_info']
-            self.driver.validate(self.task, node, deploy_data)
+            self.driver.validate(self.task)

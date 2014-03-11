@@ -62,8 +62,12 @@ class TestTeethDeploy(unittest.TestCase):
         node = FakeNode()
         task = FakeTask()
         del node.driver_info['agent_url']
-        with self.assertRaises(exception.InvalidParameterValue):
-            self.driver.validate(task, node)
+        deploy_data = node.deploy_data
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.validate,
+                          task,
+                          node,
+                          deploy_data)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_deploy(self, get_client_mock):
@@ -122,8 +126,11 @@ class TestTeethDeploy(unittest.TestCase):
         self.assertEqual(node.target_provision_state, 'prepared')
 
     def test_validate_bad_params(self):
-        with self.assertRaises(exception.InvalidParameterValue):
-            node = FakeNode()
-            deploy_data = node.deploy_data
-            del deploy_data['image_info']
-            self.driver.validate(self.task, node, deploy_data)
+        node = FakeNode()
+        deploy_data = node.deploy_data
+        del deploy_data['image_info']
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.validate,
+                          self.task,
+                          node,
+                          deploy_data)

@@ -1,3 +1,18 @@
+"""
+Copyright 2014 Rackspace, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import datetime
 
 from ironic.common import exception
@@ -9,9 +24,13 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 class TeethVendorPassthru(base.VendorInterface):
+    #TODO(pcsforeducation) use MixingVendorInterface when merged
     def __init__(self):
-        self.routes = {
-            'heartbeat': self._heartbeat_no_uuid()
+        self.vendor_routes = {
+            'heartbeat': self._heartbeat
+        }
+        self.driver_routes = {
+            'lookup': self._heartbeat_no_uuid
         }
         self.db_connection = dbapi.get_backend()
         self.LOG = log.getLogger(__name__)
@@ -26,26 +45,48 @@ class TeethVendorPassthru(base.VendorInterface):
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
-        pass
+        if 'agent_url' not in node.driver_info:
+            raise exception.InvalidParameterValue('agent_url is required to '
+                                                  'talk to the agent')
 
     def driver_vendor_passthru(self, method, **kwargs):
+        """A node that does not know its UUID should POST to this method.
+        Given method, route the command to the appropriate private function.
         """
-        Given method, route the command to the appropriate
-        private function.
-        """
-        if method not in self.routes:
+        if method not in self.driver_routes:
             raise ValueError('No handler for method {0}'.format(method))
-        func = self.routes[method]
+        func = self.driver_routes[method]
         return func(**kwargs)
 
     def vendor_passthru(self, task, node, **kwargs):
-        """A node that knows its uuid should heartbeat to this passthu. It will
+        """A node that knows its UUID should heartbeat to this passthu. It will
         get its node object back, with what Ironic thinks its provision state
         is and the target provision state is.
         """
-        # heartbeats with uuid, return the updated node
+        if 'method' not in kwargs:
+            raise ValueError('No method provided in kwargs')
+        method = kwargs['method']
+        if method not in self.vendor_routes:
+            raise ValueError('No handler for method {0}'.format(method))
+        func = self.vendor_routes[method]
+        return func(task, node, **kwargs)
+
+    def _heartbeat(self, task, node, **kwargs):
+        """Method for agent to periodically check in. The agent should be
+        sending its agent_url (so Ironic can talk back) as a kwarg.
+
+        kwargs should have the following format:
+        {
+            'agent_url': 'http://AGENT_HOST:AGENT_PORT'
+        }
+                AGENT_PORT defaults to 9999.
+        """
+        if 'agent_url' not in kwargs:
+            raise exception.InvalidParameterValue('"agent_url" is a required'
+                                                  ' parameter')
         node.driver_info['last_heartbeat'] = datetime.datetime.now()
-        node.save()
+        node.driver_info['agent_url'] = kwargs['agent_url']
+        node.save(task)
         return node
 
     def _heartbeat_no_uuid(self, **kwargs):
@@ -61,32 +102,18 @@ class TeethVendorPassthru(base.VendorInterface):
 
         kwargs should have the following format:
         {
-            'ipmi_address': OUT_OF_BAND_IP_ADDRESS,
-            'agent_url': http://NODE_IP:AGENT_PORT
             'mac_addresses': ['MAC_1', 'MAC_2'...]
         }
 
-        AGENT_PORT defaults to 9999.
         mac_addresses is a list of strings for the non-IPMI ports in the
         server, (the normal network ports). They should be in the format
         "aa:bb:cc:dd:ee:ff".
         """
-        if 'agent_url' not in kwargs:
-            raise exception.InvalidParameterValue('"agent_url" is a required'
-                                                  ' parameter')
-        if 'ipmi_address' not in kwargs:
-            raise exception.InvalidParameterValue('"ipmi_address" is a required'
-                                                  ' parameter')
         if 'mac_addresses' not in kwargs or not kwargs['mac_addresses']:
             raise exception.InvalidParameterValue('"mac_addresses" is a '
                                                   'required parameter and must'
                                                   ' not be empty')
-
         node = self._find_node_by_macs(kwargs['mac_addresses'])
-        node.driver_info['last_heartbeat'] = datetime.datetime.now()
-        node.driver_info['agent_url'] = kwargs['agent_url']
-        node.instance_info['ipmi_address'] = kwargs['ipmi_address']
-        node.save()
         return node
 
     def _find_node_by_macs(self, mac_addresses):
@@ -95,6 +122,23 @@ class TeethVendorPassthru(base.VendorInterface):
 
         raises IronicException if the ports point to multiple nodes or no
         nodes.
+        """
+        ports = self._find_ports_by_macs(mac_addresses)
+        node_id = self._get_node_id(ports)
+        try:
+            node = self.db_connection.get_node(node_id=node_id)
+        except NoResultFound:
+            self.LOG.exception('Could not find matching node for the provided '
+                               'MACs.')
+            raise exception.IronicException('No node matches the given MAC '
+                                            'addresses.')
+        return node
+
+    def _find_ports_by_macs(self, mac_addresses):
+        """Given a list of MAC addresses, find the ports that mach the MACs
+        and return them as a list of Port objects.
+
+        raises IroniceException if the no matching ports are found.
         """
         ports = []
         for mac in mac_addresses:
@@ -108,17 +152,9 @@ class TeethVendorPassthru(base.VendorInterface):
                                    'database'.format(mac))
 
         if not ports:
-            raise exception.IronicException('None of the provided MAC addresses'
-                                            ' match a port.')
-        node_id = self._get_node_id(ports)
-        try:
-            node = self.db_connection.get_node(node_id=node_id)
-        except NoResultFound:
-            self.LOG.exception('Could not find matching node for the provided '
-                               'MACs.')
-            raise exception.IronicException('No node matches the given MAC '
-                                            'addresses.')
-        return node
+            raise exception.IronicException('None of the provided MAC '
+                                            'addresses match a port.')
+        return ports
 
     def _get_node_id(self, ports):
         """Given a list of ports, either return the node_id they all share or

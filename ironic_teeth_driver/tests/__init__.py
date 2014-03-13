@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import collections
+import contextlib
+import datetime
 import mock
 import unittest
 
 
 class TeethMockTestUtilities(unittest.TestCase):
-
     def setUp(self):
         self._patches = collections.defaultdict(dict)
 
@@ -38,7 +39,7 @@ class TeethMockTestUtilities(unittest.TestCase):
             else:
                 patcher = mock.patch(cls.__module__ + '.' + cls.__name__)
             self._patches[cls] = patcher.start().return_value
-            self.addCleanup(patcher.stop)
+            # self.addCleanup(patcher.stop)
 
         m = self.get_mock(cls)
         if return_value:
@@ -62,7 +63,7 @@ class TeethMockTestUtilities(unittest.TestCase):
         """
         patcher = mock.patch.object(cls, attr, autospec=autospec)
         self._patches[cls][attr] = patcher.start()
-        self.addCleanup(patcher.stop)
+        # self.addCleanup(patcher.stop)
 
         m = self.get_mock(cls, attr)
         if return_value:
@@ -84,3 +85,30 @@ class TeethMockTestUtilities(unittest.TestCase):
             return self._patches[cls][attr]
         else:
             return self._patches[cls]
+
+
+@contextlib.contextmanager
+def mock_now(dt_value):
+    """Context manager for mocking out datetime.now() in unit tests.
+
+    Example:
+    with mock_now(datetime.datetime(2011, 2, 3, 10, 11)):
+        assert datetime.datetime.now() == datetime.datetime(2011, 2, 3, 10, 11)
+
+    """
+
+    class MockDateTime(datetime.datetime):
+        @classmethod
+        def now(cls):
+            # Create a copy of dt_value.
+            return datetime.datetime(
+                dt_value.year, dt_value.month, dt_value.day,
+                dt_value.hour, dt_value.minute, dt_value.second,
+                dt_value.microsecond, dt_value.tzinfo
+            )
+    real_datetime = datetime.datetime
+    datetime.datetime = MockDateTime
+    try:
+        yield datetime.datetime
+    finally:
+        datetime.datetime = real_datetime

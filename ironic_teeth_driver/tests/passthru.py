@@ -85,7 +85,17 @@ class TestTeethPassthru(unittest.TestCase):
                 '._find_node_by_macs')
     def test_heartbeat_no_uuid(self, find_mock):
         kwargs = {
-            'mac_addresses': ['aa:bb:cc:dd:ee:ff', 'ff:ee:dd:cc:bb:aa']
+            'hardware': [
+                {
+                    'id': 'aa:bb:cc:dd:ee:ff',
+                    'type': 'mac_address'
+                },
+                {
+                    'id': 'ff:ee:dd:cc:bb:aa',
+                    'type': 'mac_address'
+                }
+
+                ]
         }
         expected_node = FakeNode(uuid='heartbeat')
         find_mock.return_value = expected_node

@@ -16,6 +16,7 @@ limitations under the License.
 import datetime
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.db.sqlalchemy import api as dbapi
 from ironic.drivers import base
 from ironic.openstack.common import log
@@ -102,18 +103,44 @@ class TeethVendorPassthru(base.VendorInterface):
 
         kwargs should have the following format:
         {
-            'mac_addresses': ['MAC_1', 'MAC_2'...]
+            hardware: [
+                {
+                    'id': 'aa:bb:cc:dd:ee:ff',
+                    'type': 'mac_address'
+                },
+                {
+                    'id': '00:11:22:33:44:55',
+                    'type': 'mac_address'
+                }
+            ], ...
         }
 
-        mac_addresses is a list of strings for the non-IPMI ports in the
+        hardware is a list of dicts with id being the actual mac address,
+        with type 'mac_address' for the non-IPMI ports in the
         server, (the normal network ports). They should be in the format
         "aa:bb:cc:dd:ee:ff".
         """
-        if 'mac_addresses' not in kwargs or not kwargs['mac_addresses']:
-            raise exception.InvalidParameterValue('"mac_addresses" is a '
+        if 'hardware' not in kwargs or not kwargs['hardware']:
+            raise exception.InvalidParameterValue('"hardware" is a '
                                                   'required parameter and must'
                                                   ' not be empty')
-        node = self._find_node_by_macs(kwargs['mac_addresses'])
+
+        # Find the address from the hardware list
+        mac_addresses = []
+        for hardware in kwargs['hardware']:
+            if 'id' not in hardware or 'type' not in hardware:
+                self.LOG.warning(_('Malformed hardware entry %s') % hardware)
+                continue
+            if 'type' == 'mac_address':
+                try:
+                    mac = utils.validate_and_normalize_mac(hardware['id'])
+                except exception.InvalidMAC:
+                    self.LOG.warning(_('Malformed MAC in hardware entry %s.')
+                                     % hardware)
+                    continue
+                mac_addresses.append(mac)
+
+        node = self._find_node_by_macs(mac_addresses)
         return node
 
     def _find_node_by_macs(self, mac_addresses):

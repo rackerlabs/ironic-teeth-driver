@@ -15,13 +15,29 @@ limitations under the License.
 """
 import datetime
 
+from oslo.config import cfg
+from sqlalchemy.orm.exc import NoResultFound
+
 from ironic.common import exception
 from ironic.common import utils
 from ironic.db.sqlalchemy import api as dbapi
 from ironic.drivers import base
+#TODO(pcsforeducation) drop this when we move into Ironic
+from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import log
 
-from sqlalchemy.orm.exc import NoResultFound
+teeth_driver_opts = [
+    cfg.IntOpt('heartbeat_timeout',
+                default=300,
+                help='The length of time in seconds until Teeth will '
+                     'consider the agent down. The agent will attempt to '
+                     'contact Ironic at some set fraction of this time '
+                     '(defaulting to 2/3 the max time).'
+                     'Defaults to 5 minutes.'),
+    ]
+
+CONF = cfg.CONF
+CONF.register_opts(teeth_driver_opts, group='teeth_driver')
 
 
 class TeethVendorPassthru(base.VendorInterface):
@@ -119,6 +135,11 @@ class TeethVendorPassthru(base.VendorInterface):
         with type 'mac_address' for the non-IPMI ports in the
         server, (the normal network ports). They should be in the format
         "aa:bb:cc:dd:ee:ff".
+
+        This method will also return the timeout for heartbeats. The driver
+        will expect the agent to heartbeat before that timeout, or it will be
+        considered down. This will be in a root level key called
+        'heartbeat_timeout'
         """
         if 'hardware' not in kwargs or not kwargs['hardware']:
             raise exception.InvalidParameterValue('"hardware" is a '
@@ -141,7 +162,10 @@ class TeethVendorPassthru(base.VendorInterface):
                 mac_addresses.append(mac)
 
         node = self._find_node_by_macs(mac_addresses)
-        return node
+        return {
+            'heartbeat_timeout': CONF.teeth_driver.heartbeat_timeout,
+            'node': node
+        }
 
     def _find_node_by_macs(self, mac_addresses):
         """Given a list of MAC addresses, find the ports that match the MACs
@@ -155,10 +179,11 @@ class TeethVendorPassthru(base.VendorInterface):
         try:
             node = self.db_connection.get_node(node_id=node_id)
         except NoResultFound:
-            self.LOG.exception('Could not find matching node for the provided '
-                               'MACs.')
-            raise exception.IronicException('No node matches the given MAC '
-                                            'addresses.')
+            self.LOG.exception(_('Could not find matching node for the '
+                                'provided '
+                               'MACs.'))
+            raise exception.IronicException(_('No node matches the given MAC '
+                                            'addresses.'))
         return node
 
     def _find_ports_by_macs(self, mac_addresses):
@@ -175,12 +200,12 @@ class TeethVendorPassthru(base.VendorInterface):
                 ports.append(port)
             except NoResultFound:
                 # TODO(pcsforeducation) is this the right log level?
-                self.LOG.exception('MAC address {0} attached to node not in '
-                                   'database'.format(mac))
+                self.LOG.exception(_('MAC address %s attached to node not in '
+                                   'database') % mac)
 
         if not ports:
-            raise exception.IronicException('None of the provided MAC '
-                                            'addresses match a port.')
+            raise exception.IronicException(_('None of the provided MAC '
+                                            'addresses match a port.'))
         return ports
 
     def _get_node_id(self, ports):
@@ -193,6 +218,6 @@ class TeethVendorPassthru(base.VendorInterface):
         for port in ports:
             node_ids.add(port.node_id)
         if len(node_ids) > 1:
-            raise exception.IronicException('Ports matching mac addresses '
-                                            'match multiple nodes.')
+            raise exception.IronicException(_('Ports matching mac addresses '
+                                            'match multiple nodes.'))
         return node_ids.pop()

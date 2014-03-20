@@ -102,7 +102,7 @@ class TestTeethPassthru(unittest.TestCase):
 
         with tests.mock_now(self.fake_datetime):
             node = self.passthru._heartbeat_no_uuid(**kwargs)
-        self.assertEqual(expected_node, node)
+        self.assertEqual(expected_node, node['node'])
 
     def test_heartbeat_no_uuid_bad_kwargs(self):
         self.assertRaises(exception.InvalidParameterValue,

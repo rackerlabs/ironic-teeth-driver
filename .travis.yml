@@ -7,6 +7,7 @@ env:
 
 install:
 - pip install tox
+- pip install -e git://github.com/rackerlabs/ironic.git@teeth#egg=ironic
 script:
 - tox -vv -e $TOX_ENV
 

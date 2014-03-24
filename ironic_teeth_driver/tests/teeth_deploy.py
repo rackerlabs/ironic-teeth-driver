@@ -89,8 +89,6 @@ class TestTeethDeploy(unittest.TestCase):
                                                      wait=True)
         client_mock.run_image.assert_called_with(node, wait=True)
         self.assertEqual(driver_return, states.DEPLOYDONE)
-        self.assertEqual(node.provision_state, states.DEPLOYDONE)
-        self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
 
     @mock.patch('ironic.conductor.utils.node_power_action')
     def test_tear_down(self, power_mock):
@@ -100,8 +98,6 @@ class TestTeethDeploy(unittest.TestCase):
         power_mock.assert_called_with(self.task, node, states.REBOOT)
 
         self.assertEqual(driver_return, states.DELETING)
-        self.assertEqual(node.provision_state, states.DELETING)
-        self.assertEqual(node.target_provision_state, states.DELETED)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_prepare(self, get_client_mock):

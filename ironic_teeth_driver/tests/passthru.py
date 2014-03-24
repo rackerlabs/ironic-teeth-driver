@@ -155,7 +155,7 @@ class TestTeethPassthru(unittest.TestCase):
         node_mock.side_effect = db_exc.NoResultFound()
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        self.assertRaises(exception.IronicException,
+        self.assertRaises(db_exc.NoResultFound,
                           self.passthru._find_node_by_macs,
                           FakeTask(),
                           macs)

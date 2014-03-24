@@ -16,7 +16,7 @@ limitations under the License.
 import datetime
 
 from oslo.config import cfg
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm import exc
 
 from ironic.common import exception
 from ironic.common import utils
@@ -179,12 +179,10 @@ class TeethVendorPassthru(base.VendorInterface):
         node_id = self._get_node_id(ports)
         try:
             node_object = node.Node.get_by_uuid(context, node_id)
-        except NoResultFound:
+        except exc.NoResultFound:
             self.LOG.exception(_('Could not find matching node for the '
-                                'provided '
-                               'MACs.'))
-            raise exception.IronicException(_('No node matches the given MAC '
-                                            'addresses.'))
+                                 'provided MACs.'))
+            raise
         return node_object
 
     def _find_ports_by_macs(self, mac_addresses):
@@ -201,7 +199,8 @@ class TeethVendorPassthru(base.VendorInterface):
                 # port.get_by_uuid() would technically work but shouldn't.
                 port = self.db_connection.get_port(port_id=mac)
                 ports.append(port)
-            except NoResultFound:
+
+            except exc.NoResultFound:
                 # TODO(pcsforeducation) is this the right log level?
                 self.LOG.exception(_('MAC address %s attached to node not in '
                                    'database') % mac)

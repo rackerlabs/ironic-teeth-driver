@@ -23,6 +23,11 @@ import unittest
 class TeethMockTestUtilities(unittest.TestCase):
     def setUp(self):
         self._patches = collections.defaultdict(dict)
+        self.patcher = None
+
+    def tearDown(self):
+        if self.patcher:
+            self.patcher.stop()
 
     def _mock_class(self, cls, return_value=None, side_effect=None,
                     autospec=False):
@@ -39,7 +44,7 @@ class TeethMockTestUtilities(unittest.TestCase):
             else:
                 patcher = mock.patch(cls.__module__ + '.' + cls.__name__)
             self._patches[cls] = patcher.start().return_value
-            # self.addCleanup(patcher.stop)
+            self.patcher = patcher
 
         m = self.get_mock(cls)
         if return_value:
@@ -63,7 +68,6 @@ class TeethMockTestUtilities(unittest.TestCase):
         """
         patcher = mock.patch.object(cls, attr, autospec=autospec)
         self._patches[cls][attr] = patcher.start()
-        # self.addCleanup(patcher.stop)
 
         m = self.get_mock(cls, attr)
         if return_value:

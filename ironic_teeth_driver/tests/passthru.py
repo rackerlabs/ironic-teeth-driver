@@ -45,6 +45,7 @@ class FakeNode(object):
 
 class FakeTask(object):
     def __init__(self):
+        self.drivername = "fake"
         self.context = {}
 
 
@@ -101,12 +102,13 @@ class TestTeethPassthru(unittest.TestCase):
         find_mock.return_value = expected_node
 
         with tests.mock_now(self.fake_datetime):
-            node = self.passthru._heartbeat_no_uuid(**kwargs)
+            node = self.passthru._heartbeat_no_uuid(FakeTask(), **kwargs)
         self.assertEqual(expected_node, node['node'])
 
     def test_heartbeat_no_uuid_bad_kwargs(self):
         self.assertRaises(exception.InvalidParameterValue,
-                          self.passthru._heartbeat_no_uuid)
+                          self.passthru._heartbeat_no_uuid,
+                          FakeTask())
 
     def test_find_ports_by_macs(self):
         fake_port = FakePort()
@@ -126,32 +128,36 @@ class TestTeethPassthru(unittest.TestCase):
                           self.passthru._find_ports_by_macs,
                           macs)
 
+    @mock.patch('ironic.objects.node.Node.get_by_uuid')
     @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
                 '._get_node_id')
     @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
                 '._find_ports_by_macs')
-    def test_find_node_by_macs(self, ports_mock, node_id_mock):
+    def test_find_node_by_macs(self, ports_mock, node_id_mock, node_mock):
         ports_mock.return_value = [FakePort()]
-        node_id_mock.return_value = 'fake-node'
+        node_id_mock.return_value = 'c3e83a6a-f094-4c55-8480-760a44efffc6'
         fake_node = FakeNode()
-        self.node_mock.return_value = fake_node
+        node_mock.return_value = fake_node
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        node = self.passthru._find_node_by_macs(macs)
+        node = self.passthru._find_node_by_macs(FakeTask(), macs)
         self.assertEqual(fake_node, node)
 
+    @mock.patch('ironic.objects.node.Node.get_by_uuid')
     @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
                 '._get_node_id')
     @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
                 '._find_ports_by_macs')
-    def test_find_node_by_macs_bad_params(self, ports_mock, node_id_mock):
+    def test_find_node_by_macs_bad_params(self, ports_mock, node_id_mock,
+                                          node_mock):
         ports_mock.return_value = []
-        node_id_mock.return_value = 'fake-node'
-        self.node_mock.side_effect = db_exc.NoResultFound()
+        node_id_mock.return_value = 'fake-uuid'
+        node_mock.side_effect = db_exc.NoResultFound()
 
         macs = ['aa:bb:cc:dd:ee:ff']
         self.assertRaises(exception.IronicException,
                           self.passthru._find_node_by_macs,
+                          FakeTask(),
                           macs)
 
     def test_get_node_id(self):

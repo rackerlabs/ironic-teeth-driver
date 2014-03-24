@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.db.sqlalchemy import api as dbapi
 from ironic.drivers import base
+from ironic.objects import node
 #TODO(pcsforeducation) drop this when we move into Ironic
 from ironic.openstack.common.gettextutils import _
 from ironic.openstack.common import log
@@ -66,14 +67,14 @@ class TeethVendorPassthru(base.VendorInterface):
             raise exception.InvalidParameterValue('agent_url is required to '
                                                   'talk to the agent')
 
-    def driver_vendor_passthru(self, method, **kwargs):
+    def driver_vendor_passthru(self, task, method, **kwargs):
         """A node that does not know its UUID should POST to this method.
         Given method, route the command to the appropriate private function.
         """
         if method not in self.driver_routes:
             raise ValueError('No handler for method {0}'.format(method))
         func = self.driver_routes[method]
-        return func(**kwargs)
+        return func(task, **kwargs)
 
     def vendor_passthru(self, task, node, **kwargs):
         """A node that knows its UUID should heartbeat to this passthu. It will
@@ -106,7 +107,7 @@ class TeethVendorPassthru(base.VendorInterface):
         node.save(task)
         return node
 
-    def _heartbeat_no_uuid(self, **kwargs):
+    def _heartbeat_no_uuid(self, context, **kwargs):
         """Method to be called the first time a ramdisk agent checks in. This
         can be because this is a node just entering decom or a node that
         rebooted for some reason. We will use the mac addresses listed in the
@@ -161,13 +162,13 @@ class TeethVendorPassthru(base.VendorInterface):
                     continue
                 mac_addresses.append(mac)
 
-        node = self._find_node_by_macs(mac_addresses)
+        node_object = self._find_node_by_macs(context, mac_addresses)
         return {
             'heartbeat_timeout': CONF.teeth_driver.heartbeat_timeout,
-            'node': node
+            'node': node_object
         }
 
-    def _find_node_by_macs(self, mac_addresses):
+    def _find_node_by_macs(self, context, mac_addresses):
         """Given a list of MAC addresses, find the ports that match the MACs
         and return the node they are all connected to.
 
@@ -177,14 +178,14 @@ class TeethVendorPassthru(base.VendorInterface):
         ports = self._find_ports_by_macs(mac_addresses)
         node_id = self._get_node_id(ports)
         try:
-            node = self.db_connection.get_node(node_id=node_id)
+            node_object = node.Node.get_by_uuid(context, node_id)
         except NoResultFound:
             self.LOG.exception(_('Could not find matching node for the '
                                 'provided '
                                'MACs.'))
             raise exception.IronicException(_('No node matches the given MAC '
                                             'addresses.'))
-        return node
+        return node_object
 
     def _find_ports_by_macs(self, mac_addresses):
         """Given a list of MAC addresses, find the ports that mach the MACs
@@ -196,6 +197,8 @@ class TeethVendorPassthru(base.VendorInterface):
         for mac in mac_addresses:
             # Will do a search by mac if the mac isn't malformed
             try:
+                # TODO(pcsforeducation) add port.get_by_mac() to Ironic
+                # port.get_by_uuid() would technically work but shouldn't.
                 port = self.db_connection.get_port(port_id=mac)
                 ports.append(port)
             except NoResultFound:
@@ -214,9 +217,9 @@ class TeethVendorPassthru(base.VendorInterface):
         ports are connected to multiple nodes)
         """
         # See if all the ports point to the same node
-        node_ids = set()
-        for port in ports:
-            node_ids.add(port.node_id)
+        node_ids = set(port.node_id for port in ports)
+        if len(node_ids) == 0:
+            raise exception.IronicException(_('No '))
         if len(node_ids) > 1:
             raise exception.IronicException(_('Ports matching mac addresses '
                                             'match multiple nodes.'))

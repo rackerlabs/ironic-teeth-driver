@@ -54,20 +54,19 @@ class TestTeethDeploy(unittest.TestCase):
         self.task = FakeTask()
 
     def test_validate(self):
-        task = FakeTask()
-        self.driver.validate(task)
+        self.driver.validate(FakeNode())
 
     def test_validate_fail(self):
         node = FakeNode()
-        task = FakeTask()
         del node.driver_info['agent_url']
-        with self.assertRaises(exception.InvalidParameterValue):
-            self.driver.validate(task)
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.driver.validate,
+                          node)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_deploy(self, get_client_mock):
         node = FakeNode()
-        deploy_data = node.deploy_data
+        info = node.instance_info
 
         client_mock = mock.Mock()
 
@@ -78,14 +77,12 @@ class TestTeethDeploy(unittest.TestCase):
 
         driver_return = self.driver.deploy(self.task, node)
         client_mock.prepare_image.assert_called_with(node,
-                                                     deploy_data['image_info'],
-                                                     deploy_data['metadata'],
-                                                     deploy_data['files'],
+                                                     info['image_info'],
+                                                     info['metadata'],
+                                                     info['files'],
                                                      wait=True)
         client_mock.run_image.assert_called_with(node, wait=True)
         self.assertEqual(driver_return, states.DEPLOYDONE)
-        self.assertEqual(node.provision_state, states.DEPLOYDONE)
-        self.assertEqual(node.target_provision_state, states.DEPLOYDONE)
 
     @mock.patch('ironic.conductor.utils.node_power_action')
     def test_tear_down(self, power_mock):
@@ -95,14 +92,11 @@ class TestTeethDeploy(unittest.TestCase):
         power_mock.assert_called_with(self.task, node, states.REBOOT)
 
         self.assertEqual(driver_return, states.DELETING)
-        self.assertEqual(node.provision_state, states.DELETING)
-        self.assertEqual(node.target_provision_state, states.DELETED)
 
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_prepare(self, get_client_mock):
         node = FakeNode()
-        # driver_info = node.driver_info
-        deploy_data = node.deploy_data
+        info = node.instance_info
 
         client_mock = mock.Mock()
         client_mock.cache_image.return_value = None
@@ -111,7 +105,7 @@ class TestTeethDeploy(unittest.TestCase):
 
         driver_return = self.driver.prepare(self.task, node)
         client_mock.cache_image.assert_called_with(node,
-                                                   deploy_data['image_info'],
+                                                   info['image_info'],
                                                    force=False,
                                                    wait=True)
         self.assertEqual(driver_return, 'prepared')
@@ -121,8 +115,8 @@ class TestTeethDeploy(unittest.TestCase):
         self.assertEqual(node.target_provision_state, 'prepared')
 
     def test_validate_bad_params(self):
-        with self.assertRaises(exception.InvalidParameterValue):
-            node = FakeNode()
-            deploy_data = node.deploy_data
-            del deploy_data['image_info']
-            self.driver.validate(self.task)
+        node = FakeNode()
+        del node.instance_info['image_info']
+        self.assertRaises(exception.InvalidParameterValue,
+            self.driver.validate,
+            node)

@@ -81,10 +81,6 @@ class TeethDeploy(base.DeployInterface):
         metadata = node.instance_info.get('metadata')
         files = node.instance_info.get('files')
 
-        node.provision_state = states.DEPLOYING
-        node.target_provision_state = states.DEPLOYDONE
-        node.save(task.context)
-
         # Tell the client to run the image with the given args
         client = self._get_client()
         client.prepare_image(node, image_info, metadata, files, wait=True)
@@ -92,8 +88,6 @@ class TeethDeploy(base.DeployInterface):
         client.run_image(node, wait=True)
         # TODO(pcsforeducation) don't return until we have a totally working
         # machine, so we'll need to do some kind of testing here.
-        node.provision_state = states.DEPLOYDONE
-        node.save(task.context)
         return states.DEPLOYDONE
 
     def tear_down(self, task, node):

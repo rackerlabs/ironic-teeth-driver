@@ -1,3 +1,2 @@
 requests==2.0.0
-pyghmi==0.5.8
--e git://github.com/rackerlabs/ironic.git@8c501bebfb6aa91a721dbd42152f10e506d5062e#egg=ironic
+-e git://github.com/openstack/ironic.git@b7a243b63f4f00535d85cde4f48420e478f8368b#egg=ironic

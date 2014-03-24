@@ -30,7 +30,7 @@ class RESTAgentClient(object):
     def _get_command_url(self, node):
         if 'agent_url' not in node.driver_info:
             raise exception.IronicException('REST Agent requires agent_url')
-        return '{}/v1.0/commands'.format(node.driver_info['agent_url'])
+        return '{0}/v1.0/commands'.format(node.driver_info['agent_url'])
 
     def _get_command_body(self, method, params):
         return jsonutils.dumps({

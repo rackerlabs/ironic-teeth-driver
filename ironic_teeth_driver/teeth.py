@@ -40,8 +40,8 @@ class TeethDeploy(base.DeployInterface):
         client = rest.RESTAgentClient({})
         return client
 
-    def validate(self, task, node, deploy_data=None):
-        """Validate the driver-specific Node deployment info.
+    def validate(self, node):
+        """Validate the driver-specific git Node deployment info.
 
         This method validates whether the 'driver_info' property of the
         supplied node contains the required information for this driver to
@@ -53,19 +53,19 @@ class TeethDeploy(base.DeployInterface):
         if 'agent_url' not in node.driver_info:
             raise exception.InvalidParameterValue('Nodes require an '
                                                   'agent_url.')
-        if deploy_data is not None:
-            if 'image_info' not in deploy_data:
+        if node.instance_info is not None:
+            if 'image_info' not in node.instance_info:
                 raise exception.InvalidParameterValue('Nodes require '
                                                       'image_info.')
-            if 'metadata' not in deploy_data:
+            if 'metadata' not in node.instance_info:
                 raise exception.InvalidParameterValue('metadata in '
                                                       'deploy_data required '
                                                       'for deploy.')
-            if 'files' not in deploy_data:
+            if 'files' not in node.instance_info:
                 raise exception.InvalidParameterValue('files in deploy_data '
                                                       'required for deploy.')
 
-    def deploy(self, task, node, deploy_data):
+    def deploy(self, task, node):
         """Perform a deployment to a node.
 
         Perform the necessary work to deploy an image onto the specified node.
@@ -75,12 +75,11 @@ class TeethDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         :param node: the Node to act upon.
-        :param deploy_data: A dictionary of extra data to pass to the agent.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        image_info = deploy_data.get('image_info')
-        metadata = deploy_data.get('metadata')
-        files = deploy_data.get('files')
+        image_info = node.instance_info.get('image_info')
+        metadata = node.instance_info.get('metadata')
+        files = node.instance_info.get('files')
 
         # Tell the client to run the image with the given args
         client = self._get_client()
@@ -110,7 +109,7 @@ class TeethDeploy(base.DeployInterface):
         manager_utils.node_power_action(task, node, states.REBOOT)
         return states.DELETING
 
-    def prepare(self, task, node, deploy_data):
+    def prepare(self, task, node):
         """Prepare the deployment environment for this node.
 
         The method must be idempotent. It will be called right before
@@ -122,10 +121,9 @@ class TeethDeploy(base.DeployInterface):
         :param task: a TaskManager instance.
         :param node: the Node for which to prepare a deployment environment
                      on this Conductor.
-        :param deploy_data: A dictionary of extra data to pass to the agent.
         """
-        image_info = deploy_data.get('image_info')
-        force = deploy_data.get('force', False)
+        image_info = node.instance_info.get('image_info')
+        force = node.instance_info.get('force', False)
 
         # Set the node to cache in the DB
         node.provision_state = states.BUILDING

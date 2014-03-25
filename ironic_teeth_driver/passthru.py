@@ -56,14 +56,14 @@ class TeethVendorPassthru(base.VendorInterface):
     def validate(self, node, **kwargs):
         """Validate the driver-specific Node deployment info.
 
-        This method validates whether the 'driver_info' property of the
+        This method validates whether the 'instance_info' property of the
         supplied node contains the required information for this driver to
         deploy images to the node.
 
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
-        if 'agent_url' not in node.driver_info:
+        if 'agent_url' not in node.instance_info:
             raise exception.InvalidParameterValue('agent_url is required to '
                                                   'talk to the agent')
 
@@ -77,9 +77,9 @@ class TeethVendorPassthru(base.VendorInterface):
         return func(task, **kwargs)
 
     def vendor_passthru(self, task, node, **kwargs):
-        """A node that knows its UUID should heartbeat to this passthu. It will
-        get its node object back, with what Ironic thinks its provision state
-        is and the target provision state is.
+        """A node that knows its UUID should heartbeat to this passthru. It
+        will get its node object back, with what Ironic thinks its provision
+        state is and the target provision state is.
         """
         if 'method' not in kwargs:
             raise ValueError('No method provided in kwargs')
@@ -102,8 +102,8 @@ class TeethVendorPassthru(base.VendorInterface):
         if 'agent_url' not in kwargs:
             raise exception.InvalidParameterValue('"agent_url" is a required'
                                                   ' parameter')
-        node.driver_info['last_heartbeat'] = datetime.datetime.now()
-        node.driver_info['agent_url'] = kwargs['agent_url']
+        node.instance_info['last_heartbeat'] = datetime.datetime.now()
+        node.instance_info['agent_url'] = kwargs['agent_url']
         node.save(task)
         return node
 
@@ -172,7 +172,7 @@ class TeethVendorPassthru(base.VendorInterface):
         """Given a list of MAC addresses, find the ports that match the MACs
         and return the node they are all connected to.
 
-        raises IronicException if the ports point to multiple nodes or no
+        raises Ironicxception if the ports point to multiple nodes or no
         nodes.
         """
         ports = self._find_ports_by_macs(mac_addresses)
@@ -186,10 +186,10 @@ class TeethVendorPassthru(base.VendorInterface):
         return node_object
 
     def _find_ports_by_macs(self, mac_addresses):
-        """Given a list of MAC addresses, find the ports that mach the MACs
+        """Given a list of MAC addresses, find the ports that match the MACs
         and return them as a list of Port objects.
 
-        raises IroniceException if the no matching ports are found.
+        raises IronicException if the no matching ports are found.
         """
         ports = []
         for mac in mac_addresses:
@@ -218,8 +218,10 @@ class TeethVendorPassthru(base.VendorInterface):
         # See if all the ports point to the same node
         node_ids = set(port.node_id for port in ports)
         if len(node_ids) == 0:
-            raise exception.IronicException(_('No '))
+            raise exception.IronicException(_('No MAC addresses given match '
+                                              'an existing node.'))
         if len(node_ids) > 1:
             raise exception.IronicException(_('Ports matching mac addresses '
                                             'match multiple nodes.'))
+        # There is only one item left in the set. Pop and return it.
         return node_ids.pop()

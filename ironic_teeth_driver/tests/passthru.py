@@ -30,13 +30,13 @@ class FakeNode(object):
     target_provision_state = states.NOSTATE
 
     def __init__(self, driver_info=None, instance_info=None, uuid=None):
-        if driver_info:
-            self.driver_info = driver_info
+        if instance_info:
+            self.instance_info = instance_info
         else:
-            self.driver_info = {
+            self.instance_info = {
                 'agent_url': 'http://127.0.0.1/foo'
             }
-        self.instance_info = instance_info or {}
+        self.driver_info = driver_info or {}
         self.uuid = uuid or 'fake-uuid'
 
     def save(self, context):
@@ -77,7 +77,7 @@ class TestTeethPassthru(unittest.TestCase):
 
     def test_validate_bad_params(self):
         node = FakeNode()
-        node.driver_info = {}
+        node.instance_info = {}
         self.assertRaises(exception.InvalidParameterValue,
                           self.passthru.validate,
                           node)
@@ -184,9 +184,9 @@ class TestTeethPassthru(unittest.TestCase):
         with tests.mock_now(self.fake_datetime):
             node = self.passthru._heartbeat(task, fake_node, **kwargs)
         self.assertEqual(self.fake_datetime,
-                         node.driver_info['last_heartbeat'])
+                         node.instance_info['last_heartbeat'])
         self.assertEqual('http://127.0.0.1:9999/bar',
-                         node.driver_info['agent_url'])
+                         node.instance_info['agent_url'])
 
     def test_heartbeat_bad_params(self):
         task = FakeTask()

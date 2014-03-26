@@ -1,2 +1,2 @@
 requests==2.0.0
--e git://github.com/openstack/ironic.git@b7a243b63f4f00535d85cde4f48420e478f8368b#egg=ironic
+-e git://github.com/rackerlabs/ironic.git@0a455ccd67d4d709720fa354adebfdccd14ea5a8#egg=ironic

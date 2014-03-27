@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import datetime
+import time
 
 from oslo.config import cfg
 from sqlalchemy.orm import exc
@@ -102,7 +102,7 @@ class TeethVendorPassthru(base.VendorInterface):
         if 'agent_url' not in kwargs:
             raise exception.InvalidParameterValue('"agent_url" is a required'
                                                   ' parameter')
-        node.instance_info['last_heartbeat'] = datetime.datetime.now()
+        node.instance_info['last_heartbeat'] = time.time()
         node.instance_info['agent_url'] = kwargs['agent_url']
         node.save(task.context)
         return node

@@ -63,7 +63,7 @@ class TeethVendorPassthru(base.VendorInterface):
         :param node: a single Node to validate.
         :raises: InvalidParameterValue
         """
-        if 'agent_url' not in node.instance_info:
+        if 'agent_url' not in node.instance_info and method == 'deploy':
             raise exception.InvalidParameterValue('agent_url is required to '
                                                   'talk to the agent')
 

@@ -204,11 +204,11 @@ class TeethVendorPassthru(base.VendorInterface):
             except exc.NoResultFound:
                 # TODO(pcsforeducation) is this the right log level?
                 self.LOG.exception(_('MAC address %s attached to node not in '
-                                   'database') % mac)
+                                     'database') % mac)
 
         if not ports:
-            raise exception.NotFound(_('None of the provided MAC '
-                                            'addresses match a port.'))
+            raise exception.NotFound(_('None of the provided MAC addresses '
+                                       'match a port.'))
         return ports
 
     def _get_node_id(self, ports):
@@ -219,10 +219,10 @@ class TeethVendorPassthru(base.VendorInterface):
         # See if all the ports point to the same node
         node_ids = set(port.node_id for port in ports)
         if len(node_ids) == 0:
-            raise exception.NotFound(_('No MAC addresses given match '
-                                              'an existing node.'))
+            raise exception.NotFound(_('No MAC addresses given match an '
+                                       'existing node.'))
         if len(node_ids) > 1:
             raise exception.NotFound(_('Ports matching mac addresses '
-                                            'match multiple nodes.'))
+                                       'match multiple nodes.'))
         # There is only one item left in the set. Pop and return it.
         return node_ids.pop()

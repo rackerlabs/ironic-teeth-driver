@@ -53,7 +53,7 @@ class TeethVendorPassthru(base.VendorInterface):
         self.db_connection = dbapi.get_backend()
         self.LOG = log.getLogger(__name__)
 
-    def validate(self, node, **kwargs):
+    def validate(self, task, node, method, *args, **kwargs):
         """Validate the driver-specific Node deployment info.
 
         This method validates whether the 'instance_info' property of the

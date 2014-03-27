@@ -104,7 +104,7 @@ class TeethVendorPassthru(base.VendorInterface):
                                                   ' parameter')
         node.instance_info['last_heartbeat'] = datetime.datetime.now()
         node.instance_info['agent_url'] = kwargs['agent_url']
-        node.save(task)
+        node.save(task.context)
         return node
 
     def _heartbeat_no_uuid(self, context, **kwargs):

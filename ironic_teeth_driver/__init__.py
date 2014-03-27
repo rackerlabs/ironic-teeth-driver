@@ -15,6 +15,7 @@ limitations under the License.
 """
 from ironic.drivers import base
 from ironic.drivers.modules import ipmitool
+from ironic_teeth_driver import passthru
 from ironic_teeth_driver import teeth
 
 

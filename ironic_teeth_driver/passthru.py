@@ -200,9 +200,8 @@ class TeethVendorPassthru(base.VendorInterface):
                 port = self.db_connection.get_port(port_id=mac)
                 ports.append(port)
 
-            except exc.NoResultFound:
-                # TODO(pcsforeducation) is this the right log level?
-                self.LOG.exception(_('MAC address %s attached to node not in '
+            except exception.PortNotFound:
+                self.LOG.warning(_('MAC address %s not found in '
                                    'database') % mac)
 
         if not ports:

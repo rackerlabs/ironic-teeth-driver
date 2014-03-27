@@ -102,8 +102,10 @@ class TeethVendorPassthru(base.VendorInterface):
         if 'agent_url' not in kwargs:
             raise exception.InvalidParameterValue('"agent_url" is a required'
                                                   ' parameter')
-        node.instance_info['last_heartbeat'] = time.time()
-        node.instance_info['agent_url'] = kwargs['agent_url']
+        instance_info = node.instance_info
+        instance_info['last_heartbeat'] = int(time.time())
+        instance_info['agent_url'] = kwargs['agent_url']
+        node.instance_info = instance_info
         node.save(task.context)
         return node
 

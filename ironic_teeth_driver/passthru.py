@@ -153,7 +153,7 @@ class TeethVendorPassthru(base.VendorInterface):
             if 'id' not in hardware or 'type' not in hardware:
                 self.LOG.warning(_('Malformed hardware entry %s') % hardware)
                 continue
-            if 'type' == 'mac_address':
+            if hardware['type'] == 'mac_address':
                 try:
                     mac = utils.validate_and_normalize_mac(hardware['id'])
                 except exception.InvalidMAC:

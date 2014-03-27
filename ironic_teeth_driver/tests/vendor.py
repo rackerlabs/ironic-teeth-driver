@@ -17,8 +17,8 @@ import datetime
 
 from ironic.common import exception
 from ironic.common import states
-from ironic_teeth_driver import passthru
 from ironic_teeth_driver import tests
+from ironic_teeth_driver import vendor
 
 import mock
 from sqlalchemy.orm import exc as db_exc
@@ -58,14 +58,14 @@ class FakePort(object):
         pass
 
 
-class TestTeethPassthru(unittest.TestCase):
+class TestTeethVendor(unittest.TestCase):
     def setUp(self):
-        self.passthru = passthru.TeethVendorPassthru()
-        self.passthru.db_connection = mock.Mock(autospec=True)
-        port_patcher = mock.patch.object(self.passthru.db_connection,
+        self.vendor = vendor.TeethVendorInterface()
+        self.vendor.db_connection = mock.Mock(autospec=True)
+        port_patcher = mock.patch.object(self.vendor.db_connection,
                                         'get_port')
         self.port_mock = port_patcher.start()
-        node_patcher = mock.patch.object(self.passthru.db_connection,
+        node_patcher = mock.patch.object(self.vendor.db_connection,
                                          'get_node')
         self.node_mock = node_patcher.start()
         self.task = FakeTask()
@@ -73,16 +73,16 @@ class TestTeethPassthru(unittest.TestCase):
 
     def test_validate(self):
         node = FakeNode()
-        self.passthru.validate(node)
+        self.vendor.validate(node)
 
     def test_validate_bad_params(self):
         node = FakeNode()
         node.instance_info = {}
         self.assertRaises(exception.InvalidParameterValue,
-                          self.passthru.validate,
+                          self.vendor.validate,
                           node)
 
-    @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
+    @mock.patch('ironic_teeth_driver.vendor.TeethVendorInterface'
                 '._find_node_by_macs')
     def test_heartbeat_no_uuid(self, find_mock):
         kwargs = {
@@ -102,12 +102,12 @@ class TestTeethPassthru(unittest.TestCase):
         find_mock.return_value = expected_node
 
         with tests.mock_now(self.fake_datetime):
-            node = self.passthru._heartbeat_no_uuid(FakeTask(), **kwargs)
+            node = self.vendor._heartbeat_no_uuid(FakeTask(), **kwargs)
         self.assertEqual(expected_node, node['node'])
 
     def test_heartbeat_no_uuid_bad_kwargs(self):
         self.assertRaises(exception.InvalidParameterValue,
-                          self.passthru._heartbeat_no_uuid,
+                          self.vendor._heartbeat_no_uuid,
                           FakeTask())
 
     def test_find_ports_by_macs(self):
@@ -115,7 +115,7 @@ class TestTeethPassthru(unittest.TestCase):
         self.port_mock.return_value = fake_port
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        ports = self.passthru._find_ports_by_macs(macs)
+        ports = self.vendor._find_ports_by_macs(macs)
         self.assertEqual(1, len(ports))
         self.assertEqual(fake_port.uuid, ports[0].uuid)
         self.assertEqual(fake_port.node_id, ports[0].node_id)
@@ -125,13 +125,13 @@ class TestTeethPassthru(unittest.TestCase):
 
         macs = ['aa:bb:cc:dd:ee:ff']
         self.assertRaises(exception.NotFound,
-                          self.passthru._find_ports_by_macs,
+                          self.vendor._find_ports_by_macs,
                           macs)
 
     @mock.patch('ironic.objects.node.Node.get_by_uuid')
-    @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
+    @mock.patch('ironic_teeth_driver.vendor.TeethVendorInterface'
                 '._get_node_id')
-    @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
+    @mock.patch('ironic_teeth_driver.vendor.TeethVendorInterface'
                 '._find_ports_by_macs')
     def test_find_node_by_macs(self, ports_mock, node_id_mock, node_mock):
         ports_mock.return_value = [FakePort()]
@@ -140,13 +140,13 @@ class TestTeethPassthru(unittest.TestCase):
         node_mock.return_value = fake_node
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        node = self.passthru._find_node_by_macs(FakeTask(), macs)
+        node = self.vendor._find_node_by_macs(FakeTask(), macs)
         self.assertEqual(fake_node, node)
 
     @mock.patch('ironic.objects.node.Node.get_by_uuid')
-    @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
+    @mock.patch('ironic_teeth_driver.vendor.TeethVendorInterface'
                 '._get_node_id')
-    @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
+    @mock.patch('ironic_teeth_driver.vendor.TeethVendorInterface'
                 '._find_ports_by_macs')
     def test_find_node_by_macs_bad_params(self, ports_mock, node_id_mock,
                                           node_mock):
@@ -156,7 +156,7 @@ class TestTeethPassthru(unittest.TestCase):
 
         macs = ['aa:bb:cc:dd:ee:ff']
         self.assertRaises(exception.NotFound,
-                          self.passthru._find_node_by_macs,
+                          self.vendor._find_node_by_macs,
                           FakeTask(),
                           macs)
 
@@ -164,7 +164,7 @@ class TestTeethPassthru(unittest.TestCase):
         fake_port1 = FakePort(node_id='fake-uuid')
         fake_port2 = FakePort(node_id='fake-uuid')
 
-        node_id = self.passthru._get_node_id([fake_port1, fake_port2])
+        node_id = self.vendor._get_node_id([fake_port1, fake_port2])
         self.assertEqual(fake_port2.uuid, node_id)
 
     def test_get_node_id_exception(self):
@@ -172,7 +172,7 @@ class TestTeethPassthru(unittest.TestCase):
         fake_port2 = FakePort(node_id='other-fake-uuid')
 
         self.assertRaises(exception.NotFound,
-                          self.passthru._get_node_id,
+                          self.vendor._get_node_id,
                           [fake_port1, fake_port2])
 
     def test_heartbeat(self):
@@ -182,7 +182,7 @@ class TestTeethPassthru(unittest.TestCase):
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
         with tests.mock_now(self.fake_datetime):
-            node = self.passthru._heartbeat(task, fake_node, **kwargs)
+            node = self.vendor._heartbeat(task, fake_node, **kwargs)
         self.assertEqual(self.fake_datetime,
                          node.instance_info['last_heartbeat'])
         self.assertEqual('http://127.0.0.1:9999/bar',
@@ -192,6 +192,6 @@ class TestTeethPassthru(unittest.TestCase):
         task = FakeTask()
         node = FakeNode()
         self.assertRaises(exception.InvalidParameterValue,
-                          self.passthru._heartbeat,
+                          self.vendor._heartbeat,
                           task=task,
                           node=node)

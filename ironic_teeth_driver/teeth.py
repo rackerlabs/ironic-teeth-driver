@@ -22,7 +22,6 @@ from ironic_teeth_driver import rest
 """States:
 
 BUILDING: caching
-PREPARED: image cached, ready for deploy
 
 DEPLOYING: applying instance definition (SSH pub keys, etc), rebooting
 ACTIVE: ready to be used
@@ -112,35 +111,13 @@ class TeethDeploy(base.DeployInterface):
     def prepare(self, task, node):
         """Prepare the deployment environment for this node.
 
-        The method must be idempotent. It will be called right before
-        `deploy`, which we will ignore.
-
-        Cache the image stored in node.driver_info['image_id']
-
-
         :param task: a TaskManager instance.
         :param node: the Node for which to prepare a deployment environment
                      on this Conductor.
         """
-        image_info = node.instance_info.get('image_info')
-        force = node.instance_info.get('force', False)
-
-        # Set the node to cache in the DB
-        node.provision_state = states.BUILDING
-
-        #TODO(pcsforeducation) replace 'prepared' with states.PREPARED
-        # when the merge is done upstream
-        node.target_provision_state = 'prepared'
-        node.save(task.context)
-
-        # Tell the agent to cache the image
-        client = self._get_client()
-        client.cache_image(node, image_info, force=force, wait=True)
-        #TODO(pcsforeducation) replace 'preparing' with states.PREPARED
-        # when the merge is done upstream
-        node.provision_state = 'prepared'
-        node.save(task.context)
-        return 'prepared'
+        # Not implemented. Try to keep as little state in the conductor as
+        # possible.
+        pass
 
     def clean_up(self, task, node):
         """Clean up the deployment environment for this node.

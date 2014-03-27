@@ -35,7 +35,7 @@ teeth_driver_opts = [
                      'contact Ironic at some set fraction of this time '
                      '(defaulting to 2/3 the max time).'
                      'Defaults to 5 minutes.'),
-    ]
+]
 
 CONF = cfg.CONF
 CONF.register_opts(teeth_driver_opts, group='teeth_driver')
@@ -172,7 +172,7 @@ class TeethVendorPassthru(base.VendorInterface):
         """Given a list of MAC addresses, find the ports that match the MACs
         and return the node they are all connected to.
 
-        raises Ironicxception if the ports point to multiple nodes or no
+        raises NotFound if the ports point to multiple nodes or no
         nodes.
         """
         ports = self._find_ports_by_macs(mac_addresses)
@@ -182,14 +182,15 @@ class TeethVendorPassthru(base.VendorInterface):
         except exc.NoResultFound:
             self.LOG.exception(_('Could not find matching node for the '
                                  'provided MACs.'))
-            raise
+            raise exception.NotFound(_('Could not find matching node for the '
+                                       'provided MACs.'))
         return node_object
 
     def _find_ports_by_macs(self, mac_addresses):
         """Given a list of MAC addresses, find the ports that match the MACs
         and return them as a list of Port objects.
 
-        raises IronicException if the no matching ports are found.
+        raises NotFound if the no matching ports are found.
         """
         ports = []
         for mac in mac_addresses:
@@ -206,22 +207,22 @@ class TeethVendorPassthru(base.VendorInterface):
                                    'database') % mac)
 
         if not ports:
-            raise exception.IronicException(_('None of the provided MAC '
+            raise exception.NotFound(_('None of the provided MAC '
                                             'addresses match a port.'))
         return ports
 
     def _get_node_id(self, ports):
         """Given a list of ports, either return the node_id they all share or
-        raise a ValueError if there are multiple node_ids (indicating these
+        raise a NotFound if there are multiple node_ids (indicating these
         ports are connected to multiple nodes)
         """
         # See if all the ports point to the same node
         node_ids = set(port.node_id for port in ports)
         if len(node_ids) == 0:
-            raise exception.IronicException(_('No MAC addresses given match '
+            raise exception.NotFound(_('No MAC addresses given match '
                                               'an existing node.'))
         if len(node_ids) > 1:
-            raise exception.IronicException(_('Ports matching mac addresses '
+            raise exception.NotFound(_('Ports matching mac addresses '
                                             'match multiple nodes.'))
         # There is only one item left in the set. Pop and return it.
         return node_ids.pop()

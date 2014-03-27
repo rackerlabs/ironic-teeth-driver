@@ -22,3 +22,4 @@ class TeethDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipmitool.IPMIPower()
         self.deploy = teeth.TeethDeploy()
+        self.vendor = passthru.TeethVendorPassthru()

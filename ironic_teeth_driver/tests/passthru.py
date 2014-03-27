@@ -124,7 +124,7 @@ class TestTeethPassthru(unittest.TestCase):
         self.port_mock.side_effect = db_exc.NoResultFound
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        self.assertRaises(exception.IronicException,
+        self.assertRaises(exception.NotFound,
                           self.passthru._find_ports_by_macs,
                           macs)
 
@@ -155,7 +155,7 @@ class TestTeethPassthru(unittest.TestCase):
         node_mock.side_effect = db_exc.NoResultFound()
 
         macs = ['aa:bb:cc:dd:ee:ff']
-        self.assertRaises(db_exc.NoResultFound,
+        self.assertRaises(exception.NotFound,
                           self.passthru._find_node_by_macs,
                           FakeTask(),
                           macs)
@@ -171,7 +171,7 @@ class TestTeethPassthru(unittest.TestCase):
         fake_port1 = FakePort(node_id='fake-uuid')
         fake_port2 = FakePort(node_id='other-fake-uuid')
 
-        self.assertRaises(exception.IronicException,
+        self.assertRaises(exception.NotFound,
                           self.passthru._get_node_id,
                           [fake_port1, fake_port2])
 

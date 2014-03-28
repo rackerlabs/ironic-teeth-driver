@@ -41,6 +41,10 @@ CONF = cfg.CONF
 CONF.register_opts(teeth_driver_opts, group='teeth_driver')
 
 
+def _time():
+    return time.time()
+
+
 class TeethVendorPassthru(base.VendorInterface):
     #TODO(pcsforeducation) use MixingVendorInterface when merged
     def __init__(self):
@@ -103,7 +107,7 @@ class TeethVendorPassthru(base.VendorInterface):
             raise exception.InvalidParameterValue('"agent_url" is a required'
                                                   ' parameter')
         instance_info = node.instance_info
-        instance_info['last_heartbeat'] = int(time.time())
+        instance_info['last_heartbeat'] = int(_time())
         instance_info['agent_url'] = kwargs['agent_url']
         node.instance_info = instance_info
         node.save(task.context)

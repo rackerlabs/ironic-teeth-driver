@@ -13,12 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import datetime
-
 from ironic.common import exception
 from ironic.common import states
 from ironic_teeth_driver import passthru
-from ironic_teeth_driver import tests
 
 import mock
 from sqlalchemy.orm import exc as db_exc
@@ -68,19 +65,24 @@ class TestTeethPassthru(unittest.TestCase):
         node_patcher = mock.patch.object(self.passthru.db_connection,
                                          'get_node')
         self.node_mock = node_patcher.start()
+        time_patcher = mock.patch.object(passthru, '_time')
+        self.time_mock = time_patcher.start()
+        self.fake_time = 1395964422
+        self.time_mock.return_value = self.fake_time
         self.task = FakeTask()
-        self.fake_datetime = datetime.datetime(2011, 2, 3, 10, 11)
 
     def test_validate(self):
         node = FakeNode()
-        self.passthru.validate(node)
+        self.passthru.validate(None, node, 'deploy')
 
     def test_validate_bad_params(self):
         node = FakeNode()
         node.instance_info = {}
         self.assertRaises(exception.InvalidParameterValue,
                           self.passthru.validate,
-                          node)
+                          None,
+                          node,
+                          'deploy')
 
     @mock.patch('ironic_teeth_driver.passthru.TeethVendorPassthru'
                 '._find_node_by_macs')
@@ -101,8 +103,7 @@ class TestTeethPassthru(unittest.TestCase):
         expected_node = FakeNode(uuid='heartbeat')
         find_mock.return_value = expected_node
 
-        with tests.mock_now(self.fake_datetime):
-            node = self.passthru._heartbeat_no_uuid(FakeTask(), **kwargs)
+        node = self.passthru._heartbeat_no_uuid(FakeTask(), **kwargs)
         self.assertEqual(expected_node, node['node'])
 
     def test_heartbeat_no_uuid_bad_kwargs(self):
@@ -121,7 +122,7 @@ class TestTeethPassthru(unittest.TestCase):
         self.assertEqual(fake_port.node_id, ports[0].node_id)
 
     def test_find_ports_by_macs_bad_params(self):
-        self.port_mock.side_effect = db_exc.NoResultFound
+        self.port_mock.side_effect = exception.PortNotFound
 
         macs = ['aa:bb:cc:dd:ee:ff']
         self.assertRaises(exception.NotFound,
@@ -181,9 +182,8 @@ class TestTeethPassthru(unittest.TestCase):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
-        with tests.mock_now(self.fake_datetime):
-            node = self.passthru._heartbeat(task, fake_node, **kwargs)
-        self.assertEqual(self.fake_datetime,
+        node = self.passthru._heartbeat(task, fake_node, **kwargs)
+        self.assertEqual(self.fake_time,
                          node.instance_info['last_heartbeat'])
         self.assertEqual('http://127.0.0.1:9999/bar',
                          node.instance_info['agent_url'])

@@ -15,12 +15,12 @@ limitations under the License.
 """
 from ironic.drivers import base
 from ironic.drivers.modules import ipmitool
-from ironic_teeth_driver import passthru
 from ironic_teeth_driver import teeth
+from ironic_teeth_driver import vendor
 
 
 class TeethDriver(base.BaseDriver):
     def __init__(self):
         self.power = ipmitool.IPMIPower()
         self.deploy = teeth.TeethDeploy()
-        self.vendor = passthru.TeethVendorPassthru()
+        self.vendor = vendor.TeethVendorInterface()

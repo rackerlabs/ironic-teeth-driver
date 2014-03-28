@@ -41,7 +41,7 @@ CONF = cfg.CONF
 CONF.register_opts(teeth_driver_opts, group='teeth_driver')
 
 
-class TeethVendorPassthru(base.VendorInterface):
+class TeethVendorInterface(base.VendorInterface):
     #TODO(pcsforeducation) use MixingVendorInterface when merged
     def __init__(self):
         self.vendor_routes = {

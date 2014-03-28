@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
@@ -80,7 +81,12 @@ class TeethDeploy(base.DeployInterface):
         metadata = node.instance_info.get('metadata')
         files = node.instance_info.get('files')
 
-        # Tell the client to run the image with the given args
+        # Get the swift temp url
+        glance = image_service.Service(version=2)
+        swift_temp_url = glance.swift_temp_url(image_info)
+        image_info['urls'] = [swift_temp_url]
+
+        # Tell the client to download and run the image with the given args
         client = self._get_client()
         client.prepare_image(node, image_info, metadata, files, wait=True)
         # TODO(pcsforeducation) Switch network here

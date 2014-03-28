@@ -31,7 +31,9 @@ class FakeNode(object):
         }
         self.instance_info = {
             'image_info': {
-                'image_id': 'test'
+                'image_id': 'test',
+                'direct_url': 'swift+http://example.com/v2'
+                              '.0/container/fake-uuid'
             },
             'metadata': {
                 'foo': 'bar'
@@ -63,12 +65,22 @@ class TestTeethDeploy(unittest.TestCase):
                           self.driver.validate,
                           node)
 
+    @mock.patch('ironic.common.image_service.Service')
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
-    def test_deploy(self, get_client_mock):
+    def test_deploy(self, get_client_mock, image_service_mock):
         node = FakeNode()
         info = node.instance_info
+        expected_image_info = info['image_info']
+        expected_image_info['urls'] = [
+            'swift+http://example.com/v2.0/container/fake-uuid']
 
         client_mock = mock.Mock()
+
+        glance_mock = mock.Mock()
+        glance_mock.swift_temp_url.return_value = 'swift+http://example' \
+                                                  '.com/v2' \
+                                                  '.0/container/fake-uuid'
+        image_service_mock.return_value = glance_mock
 
         client_mock.prepare_image.return_value = None
         client_mock.run_image.return_value = None
@@ -77,11 +89,12 @@ class TestTeethDeploy(unittest.TestCase):
 
         driver_return = self.driver.deploy(self.task, node)
         client_mock.prepare_image.assert_called_with(node,
-                                                     info['image_info'],
+                                                     expected_image_info,
                                                      info['metadata'],
                                                      info['files'],
                                                      wait=True)
         client_mock.run_image.assert_called_with(node, wait=True)
+        glance_mock.swift_temp_url.assert_called_with(info['image_info'])
         self.assertEqual(driver_return, states.DEPLOYDONE)
 
     @mock.patch('ironic.conductor.utils.node_power_action')

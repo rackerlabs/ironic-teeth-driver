@@ -96,23 +96,8 @@ class TestTeethDeploy(unittest.TestCase):
     @mock.patch('ironic_teeth_driver.teeth.TeethDeploy._get_client')
     def test_prepare(self, get_client_mock):
         node = FakeNode()
-        info = node.instance_info
-
-        client_mock = mock.Mock()
-        client_mock.cache_image.return_value = None
-
-        get_client_mock.return_value = client_mock
-
         driver_return = self.driver.prepare(self.task, node)
-        client_mock.cache_image.assert_called_with(node,
-                                                   info['image_info'],
-                                                   force=False,
-                                                   wait=True)
-        self.assertEqual(driver_return, 'prepared')
-        #TODO(pcsforeducation) replace 'preparing' with states.PREPARED
-        # when the merge is done upstream
-        self.assertEqual(node.provision_state, 'prepared')
-        self.assertEqual(node.target_provision_state, 'prepared')
+        self.assertEqual(None, driver_return)
 
     def test_validate_bad_params(self):
         node = FakeNode()

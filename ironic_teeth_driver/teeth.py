@@ -99,13 +99,9 @@ class TeethDeploy(base.DeployInterface):
         :param node: the Node to act upon.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        # Set the node to decom in the DB
-        node.provision_state = states.DELETING
-        node.target_provision_state = states.DELETED
-        node.save(task.context)
-
         # Reboot
         manager_utils.node_power_action(task, node, states.REBOOT)
+        # TODO(russell_h): resume decom when the agent comes back up
         return states.DELETING
 
     def prepare(self, task, node):
